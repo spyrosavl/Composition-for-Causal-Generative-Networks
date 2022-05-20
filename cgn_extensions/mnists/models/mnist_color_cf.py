@@ -17,22 +17,31 @@ class Flatten(nn.Module):
 class RGB_CNN(nn.Module):
     def __init__(self):
         super(RGB_CNN, self).__init__()
+        # self.model = nn.Sequential(
+        #     nn.BatchNorm2d(3),
+        #     nn.Conv2d(3, 32, kernel_size=5, stride=1, padding=2),
+        #     nn.ReLU(inplace=True),
+        #     nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+        #     nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.AvgPool2d(7),
+        #     Flatten(),
+        # )
+        # Simple CNN 
         self.model = nn.Sequential(
-            nn.BatchNorm2d(3),
-            nn.Conv2d(3, 32, kernel_size=5, stride=1, padding=2),
+            nn.Conv2d(3, 12, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(12),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
-            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(inplace=True),
-            nn.AvgPool2d(7),
+            nn.MaxPool2d(kernel_size=2, stride=2, padding=1),
             Flatten(),
         )
+        
         self.cls = nn.Sequential(
-            nn.Linear(64, 3),
+            nn.Linear(3468, 3),
         )
 
     def forward(self, x):
@@ -52,69 +61,73 @@ from torch.optim.lr_scheduler import StepLR
 
 from mnists.dataloader import get_tensor_dataloaders, TENSOR_DATASETS
 
-def train(args, model, device, train_loader, optimizer, epoch, target, max_batches=-1):
+def train(args, model, device, train_loader, optimizer, epoch, target_type, max_batches=-1):
     model.train()
+    loss_sum = 0
+    train_samples = 0
     for batch_idx, data_dict in enumerate(train_loader):
         data = data_dict['ims']
-        if target == 'shape':
+        train_samples += data.shape[0]
+        if target_type == 'shape':
             target = data_dict['labels']
-        elif target == 'texture':
+        elif target_type == 'texture':
             target = data_dict['texture_labels']
-        elif target == 'bg':
+        elif target_type == 'bg':
             target = data_dict['bg_labels']
         else:
-            raise ValueError("Invalid target")
+            raise ValueError("Invalid target type")
                 
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
-        mse_loss = nn.MSELoss()
+        mse_loss = nn.MSELoss(reduction='sum')
         loss = mse_loss(output, target)
+        loss_sum += loss.item()
         loss.backward()
         optimizer.step()
 
-        if batch_idx > max_batches and max_batches > 0:
+        if max_batches > 0 and batch_idx > max_batches:
             break
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), loss.item()))
+                100. * batch_idx / len(train_loader), loss.item()/data.shape[0] ))
 
     # print('\nTrain set: Average loss: {:.4f}, Accuracy: {}/{} ({:.1f}%)\n'.format(
     #     loss, correct, len(train_loader.dataset),
     #     100. * correct / len(train_loader.dataset)))
-    print('\nTrain set: Average loss: {:.4f})\n'.format(loss))
+    avg_loss = loss_sum / train_samples
+    print('Train set: Average epoch loss: {:.4f}\n'.format(avg_loss))
     
-    return loss
+    return avg_loss
   
 
-def test(model, device, test_loader, target):
+def test(model, device, test_loader, target_type):
     model.eval()
     test_loss = 0
     with torch.no_grad():
         for data_dict in test_loader:
             data = data_dict['ims']
-            if target == 'shape':
+            if target_type == 'shape':
                 target = data_dict['labels']
-            elif target == 'texture':
+            elif target_type == 'texture':
                 target = data_dict['texture_labels']
-            elif target == 'bg':
+            elif target_type == 'bg':
                 target = data_dict['bg_labels']
             else:
-                raise ValueError("Invalid target")
+                raise ValueError("Invalid target type")
 
             data, target = data.to(device), target.to(device)
             output = model(data)
-            mse_loss = nn.MSELoss()
-            test_loss += mse_loss(output, target, reduction='sum').item()  # sum up batch loss
-            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            mse_loss = nn.MSELoss(reduction='sum')
+            test_loss += mse_loss(output, target).item()  # sum up batch loss
+            #pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
 
-    test_loss /= len(test_loader.dataset)
-
+    test_loss = test_loss / len(test_loader.dataset)
     # print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.3f}%)\n'.format(
     #     test_loss, correct, len(test_loader.dataset),
     #     100. * correct / len(test_loader.dataset)))
-    print('\nTest set: Average loss: {:.4f}\n'.format(test_loss))
+    print('Test set: Average loss: {:.4f}\n'.format(test_loss))
     
     return test_loss
 
