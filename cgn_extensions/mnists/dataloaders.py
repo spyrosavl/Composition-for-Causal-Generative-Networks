@@ -10,41 +10,6 @@ from torchvision import transforms
 from torchvision import datasets
 from torch.utils.data import Dataset, DataLoader, TensorDataset
 
-class ColoredMNIST(Dataset):
-    def __init__(self, train, color_var=0.02):
-        # get the colored mnist
-        self.data_path = 'mnists/data/colored_mnist/mnist_10color_jitter_var_%.03f.npy'%color_var
-        data_dic = np.load(self.data_path, encoding='latin1', allow_pickle=True).item()
-        if train:
-            self.ims = data_dic['train_image']
-            self.labels = tensor(data_dic['train_label'], dtype=torch.long)
-        else:
-            self.ims = data_dic['test_image']
-            self.labels = tensor(data_dic['test_label'], dtype=torch.long)
-
-        self.T = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.Resize((32, 32), Image.NEAREST),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                (0.5, 0.5, 0.5),
-                (0.5, 0.5, 0.5),
-            ),
-        ])
-
-    def __getitem__(self, idx):
-        ims, labels = self.T(self.ims[idx]), self.labels[idx]
-
-        ret = {
-            'ims': ims,
-            'labels': labels,
-        }
-
-        return ret
-
-    def __len__(self):
-        return self.ims.shape[0]
-
 class DoubleColoredMNIST(Dataset):
 
     def __init__(self, train=True):
@@ -100,7 +65,9 @@ class DoubleColoredMNIST(Dataset):
 
         ret = {
             'ims': self.T(ims),
-            'labels': self.labels[idx]
+            'labels': self.labels[idx],
+            'bg_labels': back_color.squeeze(),
+            'texture_labels': obj_color.squeeze(),
         }
         return ret
 
@@ -156,7 +123,9 @@ class WildlifeMNIST(Dataset):
 
         ret = {
             'ims': ims,
-            'labels': self.labels[idx]
+            'labels': self.labels[idx],
+            'back_text': back_text,
+            'obj_text': obj_text
         }
         return ret
 
@@ -164,9 +133,7 @@ class WildlifeMNIST(Dataset):
         return self.labels.shape[0]
 
 def get_dataloaders(dataset, batch_size, workers):
-    if dataset == 'colored_MNIST':
-        MNIST = ColoredMNIST
-    elif dataset == 'double_colored_MNIST':
+    if dataset == 'double_colored_MNIST':
         MNIST = DoubleColoredMNIST
     elif dataset == 'wildlife_MNIST':
         MNIST = WildlifeMNIST
