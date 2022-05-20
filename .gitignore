@@ -1,5 +1,6 @@
 # Others
 bg_challenge
+media/
 
 # slurm
 slurm_output*.out
