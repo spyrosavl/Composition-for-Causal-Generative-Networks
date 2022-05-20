@@ -27,6 +27,7 @@ dependencies:
     - repackage==0.7.3
     - yacs==0.1.8
     - pytorch-gradcam
+    - grad-cam
     - gradio
     - natsort
     - kaggle==1.5.12
