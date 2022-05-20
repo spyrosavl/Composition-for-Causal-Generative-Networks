@@ -101,6 +101,8 @@ class DoubleColoredMNIST(Dataset):
         ret = {
             'ims': self.T(ims),
             'labels': self.labels[idx],
+            'back_color': back_color,
+            'obj_color': obj_color,
         }
         return ret
 
