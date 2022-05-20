@@ -159,6 +159,8 @@ class WildlifeMNIST(Dataset):
         ret = {
             'ims': ims,
             'labels': self.labels[idx],
+            'back_text': back_text,
+            'obj_text': obj_text
         }
         return ret
 
