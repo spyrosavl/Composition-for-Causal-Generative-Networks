@@ -15,7 +15,6 @@ class ColoredMNIST(Dataset):
         # get the colored mnist
         self.data_path = 'mnists/data/colored_mnist/mnist_10color_jitter_var_%.03f.npy'%color_var
         data_dic = np.load(self.data_path, encoding='latin1', allow_pickle=True).item()
-
         if train:
             self.ims = data_dic['train_image']
             self.labels = tensor(data_dic['train_label'], dtype=torch.long)
