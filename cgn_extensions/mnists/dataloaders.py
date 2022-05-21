@@ -47,12 +47,14 @@ class DoubleColoredMNIST(Dataset):
         ])
 
     def __getitem__(self, idx):
-        i = self.labels[idx] if self.train else np.random.randint(10)
+        #i = self.labels[idx] if self.train else np.random.randint(10)
+        i = np.random.randint(10)
         back_color = self.background_colors[i].clone()
         back_color += torch.normal(0, 0.01, (3, 1, 1))
         bg_color_label = i
 
-        i = self.labels[idx] if self.train else np.random.randint(10)
+        #i = self.labels[idx] if self.train else np.random.randint(10)
+        i = np.random.randint(10)
         obj_color = self.object_colors[i].clone()
         obj_color += torch.normal(0, 0.01, (3, 1, 1))
         texture_color_label = i
@@ -142,8 +144,7 @@ def get_dataloaders(dataset, batch_size, workers):
     else:
         raise TypeError(f"Unknown dataset: {dataset}")
 
-    # ds_train = MNIST(train=True)
-    ds_train = MNIST(train=False)
+    ds_train = MNIST(train=True)
     ds_test = MNIST(train=False)
     
 
