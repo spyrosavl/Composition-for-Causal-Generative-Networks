@@ -19,15 +19,15 @@ class MNIST_COLOR_CNN(nn.Module):
         super(MNIST_COLOR_CNN, self).__init__()
         # Simple CNN 
         self.model = nn.Sequential(
-            nn.Conv2d(3, 12, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(12),
+            nn.BatchNorm2d(3),
+            nn.Conv2d(3, 32, kernel_size=5, stride=1, padding=2),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2, padding=1),
+            nn.AvgPool2d(7),
             Flatten(),
         )
         
         self.cls = nn.Sequential(
-            nn.Linear(3468, num_classes),
+            nn.Linear(512, num_classes),
             nn.LogSoftmax(dim=1),
         )
 
