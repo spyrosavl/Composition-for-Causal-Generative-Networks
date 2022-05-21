@@ -159,5 +159,5 @@ dmypy.json
 
 #notebooks
 *.ipynb_checkpoints
-final-demo.ipynb 
+experiments/final-demo.ipynb
 
