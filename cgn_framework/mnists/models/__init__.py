@@ -1,3 +1,5 @@
+import repackage
+repackage.up(2)
 from mnists.models.cgn import CGN
 from mnists.models.discriminator import DiscLin, DiscConv
 from mnists.models.classifier import CNN
