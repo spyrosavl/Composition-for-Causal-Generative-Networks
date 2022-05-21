@@ -20,7 +20,7 @@ def generate_counterfactual(**kwargs):
 
 def main(n_data=6, generate_latex=True):
     seed_everything(19)
-    args = generate_counterfactual(mode="best_classes", n_data=n_data, run_name="RUN_NAME", weights_path="imagenet/weights/cgn.pth",
+    args = generate_counterfactual(mode="best_classes", n_data=n_data, run_name="RUN_NAME", weights_path="../cgn_framework/imagenet/weights/cgn.pth",
                                    batch_sz=1, truncation=0.5, classes=[0, 0, 0], interp="", interp_cls=-1,
                                    midpoints=6, save_noise=False, save_single=False)
 

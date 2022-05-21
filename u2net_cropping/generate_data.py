@@ -176,7 +176,7 @@ def main(args):
     # path setup
     time_str = datetime.now().strftime("%Y_%m_%d_%H_") if not args.ignore_time_in_filename else ""
     trunc_str = f"{args.run_name}_trunc_{args.truncation}"
-    data_path = join('imagenet', 'data', time_str + trunc_str)
+    data_path = join('..', 'cgn_framework', 'imagenet', 'data', time_str + trunc_str)
     ims_path = join(data_path, 'ims')
     pathlib.Path(ims_path).mkdir(parents=True, exist_ok=True)
     print(f"Saving data to {data_path}")

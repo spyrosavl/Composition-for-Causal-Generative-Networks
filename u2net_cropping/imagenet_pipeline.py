@@ -6,7 +6,7 @@ from ast import arg
 import json
 import os
 from os.path import join, exists, isdir
-from subprocess import call
+from subprocess import call, check_output
 from glob import glob
 import pandas as pd
 import torch
@@ -61,7 +61,7 @@ def generate_counterfactual_dataset(
                 mode="random",
                 weights_path="../cgn_framework/imagenet/weights/cgn.pth",
                 n_data=n_samples,
-                run_name=f"{prefix}-{mode}",
+                run_name=f"{prefix}_{mode}",
                 truncation=trunc,
                 batch_sz=1,
                 ignore_time_in_filename=True,
@@ -91,10 +91,10 @@ def train_classifier(args: dict = dict(lr=0.001), prefix="in-mini", seed=0, disp
 
         # all arguments used are defaults given in their repo/paper
         arguments = f"-a resnet50 -b 32 --lr {args.lr} -j 6 --pretrained"\
-            f" --data imagenet/data/in-mini --cf_data imagenet/data/{prefix}"\
+            f" --data 'imagenet/data/{prefix}' --cf_data 'imagenet/data/{prefix}'"\
             f" --name {run_name} --seed {seed} --ignore_time_in_filename"
         cmd = f"python {script_path} {arguments}"
-        call(cmd, shell=True)
+        call(cmd, shell=True, cwd='../cgn_framework')
     
     else:
         print("::::: Classifier already trained, skipping :::::")
@@ -161,7 +161,8 @@ def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=
         print("WARNING: You have passed generate_cf_data=True.")
         print("WARNING: This will take about 3 hours for train set and 20 mins for validation set.")
         print("\n::::: Generating CF dataset :::::\n")
-        generate_counterfactual_dataset(prefix="in-mini", seed=seed)
+        #TODO change back to all sample
+        generate_counterfactual_dataset(prefix="in-mini", seed=seed, n_train= 5, n_val=5)
     else:
         print("Since generate_cf_data=False, skipping CF dataset generation.")
         print("Loading results for classification and OOD experiments from cache.")
