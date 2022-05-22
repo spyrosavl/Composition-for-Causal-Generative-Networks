@@ -71,13 +71,13 @@ def fit(cfg, cgn, discriminator, dataloader, opts, losses, device, use_time_in_f
 
             # Generate a batch of images
             mask, foreground, background = cgn(y_gen)
-            x_gen = mask * foreground + (1 - mask) * background
+            x_gen = mask * foreground + (1 - mask) * background  # composition
 
             # Calc Losses
-            validity = discriminator(x_gen, y_gen)
+            validity = discriminator(x_gen, y_gen)  # binary vector of len=batch_size (1=fake/generated)
 
             losses_g = {}
-            losses_g['adv'] = L_adv(validity, valid)
+            losses_g['adv'] = L_adv(validity, valid)  # mse loss
             losses_g['binary'] = L_binary(mask)
             losses_g['perc'] = L_perc(x_gen, x_gt)
             losses_g['edge'] = L_edge(mask)

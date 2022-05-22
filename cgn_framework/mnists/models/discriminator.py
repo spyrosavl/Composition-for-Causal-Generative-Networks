@@ -59,3 +59,11 @@ class DiscConv(nn.Module):
 
         out = self.model(torch.cat([ims, embedding], 1))
         return out.squeeze()
+
+
+class ComposerDisc(nn.Module):
+    """ Discriminator on the composer's output - predicting the IM composition vs cGAN output """
+    
+    def __init__(self, n_classes, ndf):
+        super(ComposerDisc, self).__init__()
+        cin = 3  # 3-colour channels of the composer's output image
