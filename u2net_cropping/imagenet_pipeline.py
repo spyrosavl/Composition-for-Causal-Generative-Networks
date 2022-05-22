@@ -162,7 +162,7 @@ def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=
         print("WARNING: This will take about 3 hours for train set and 20 mins for validation set.")
         print("\n::::: Generating CF dataset :::::\n")
         #TODO change back to all sample
-        generate_counterfactual_dataset(prefix="in-mini", seed=seed, n_train= 5, n_val=5)
+        generate_counterfactual_dataset(prefix="in-mini", seed=seed, n_train=10000, n_val=2000)
     else:
         print("Since generate_cf_data=False, skipping CF dataset generation.")
         print("Loading results for classification and OOD experiments from cache.")
