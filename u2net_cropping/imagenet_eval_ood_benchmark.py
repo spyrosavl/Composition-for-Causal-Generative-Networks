@@ -13,7 +13,7 @@ from experiment_utils import set_env, REPO_PATH, seed_everything
 set_env()
 
 from experiments.imagenet_utils import AverageEnsembleModel
-from experiments.ood_utils import (
+from ood_utils import (
     simple_validate,
     imagenet_adv_validate,
     stylized_imagenet_validate,

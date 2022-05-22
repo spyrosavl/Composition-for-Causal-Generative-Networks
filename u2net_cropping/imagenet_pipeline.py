@@ -44,7 +44,7 @@ def generate_counterfactual_dataset(
         data_root = join(REPO_PATH, "cgn_framework/imagenet/data", run_name)
         ims = glob(join(data_root, "ims/*.jpg"))
 
-        if isdir(data_root) and len(ims) == n_samples:
+        if isdir(data_root) and len(ims) >= n_samples:
             print("")
             print(f"{mode.capitalize()} dataset exists with {n_samples} images, skipping...")
             print(f"Path to dataset: {data_root}")
@@ -162,6 +162,8 @@ def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=
         print("WARNING: This will take about 3 hours for train set and 20 mins for validation set.")
         print("\n::::: Generating CF dataset :::::\n")
         #TODO change back to all sample
+        # n_train=34745,
+        # n_val=3923,
         generate_counterfactual_dataset(prefix="in-mini", seed=seed, n_train= 5, n_val=5)
     else:
         print("Since generate_cf_data=False, skipping CF dataset generation.")
@@ -180,7 +182,7 @@ def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=
 
 
 if __name__ == "__main__":
-    metrics_clf, df_ood = run_experiments(seed=0, generate_cf_data=False, disp_epoch=34, ignore_cache=False)
+    metrics_clf, df_ood = run_experiments(seed=0, generate_cf_data=True, disp_epoch=34, ignore_cache=True)
 
     # construct Table 3 of the paper
     heads = ["shape", "texture", "bg"]
