@@ -106,9 +106,8 @@ class ImagenetVanilla(Dataset) :
             ims_path = join(root, 'val')
             t_list = [transforms.Resize(256), transforms.CenterCrop(224)]
 
-        #t_list += [transforms.ToTensor(), normalize]
+        t_list += [transforms.ToTensor(), normalize]
 
-        t_list = [transforms.Resize(256), transforms.CenterCrop(256), transforms.ToTensor()]
         self.T_ims = transforms.Compose(t_list)
 
         self.classes = sorted(os.listdir(ims_path))
