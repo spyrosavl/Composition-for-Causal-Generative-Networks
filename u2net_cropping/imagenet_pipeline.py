@@ -34,8 +34,6 @@ def generate_counterfactual_dataset(
     """Generates CF dataset for ImageNet (size of IN-mini)"""
     seed_everything(seed)
 
-    script_path = join(REPO_PATH, "u2net_cropping/generate_data.py")
-
     # generate train and val dataset
     for mode in modes:        
         run_name = f"{prefix}_{mode}_trunc_{trunc}"
@@ -92,10 +90,9 @@ def train_classifier(args: dict = dict(lr=0.001), prefix="in-mini", seed=0, disp
         # all arguments used are defaults given in their repo/paper
         arguments = f"-a resnet50 -b 32 --lr {args.lr} -j 6 --pretrained"\
             f" --data 'imagenet/data/{prefix}' --cf_data 'imagenet/data/{prefix}'"\
-            f" --name {run_name} --seed {seed} --ignore_time_in_filename"
+            f" --name {run_name} --seed {seed} --ignore_time_in_filename --gpu 0 --epochs 2" #TODO
         cmd = f"python {script_path} {arguments}"
         call(cmd, shell=True, cwd='../cgn_framework')
-    
     else:
         print("::::: Classifier already trained, skipping :::::")
 
@@ -169,7 +166,7 @@ def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=
         print("Since generate_cf_data=False, skipping CF dataset generation.")
         print("Loading results for classification and OOD experiments from cache.")
 
-    # step 2: train classifier
+    # # step 2: train classifier
     print("\n::::: Training classifier :::::\n")
     metrics = train_classifier(prefix="in-mini", seed=seed, disp_epoch=disp_epoch, ignore_cache=ignore_cache)
 

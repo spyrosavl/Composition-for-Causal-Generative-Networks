@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #SBATCH --partition=gpu_shared_course
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --job-name=IN-mini
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=2
+#SBATCH --cpus-per-task=3
 #SBATCH --time=10:00:00
 #SBATCH --mem=32000M
 #SBATCH --output=slurm_output_%A.out
