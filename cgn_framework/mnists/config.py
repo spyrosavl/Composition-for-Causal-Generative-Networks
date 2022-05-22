@@ -30,6 +30,7 @@ __C.TRAIN.WORKERS = 12
 __C.TRAIN.COLOR_VAR = 0.02
 __C.TRAIN.EPOCHS = 5
 
+
 # Loss Weigths
 __C.LAMBDAS = CN()
 __C.LAMBDAS.MASK = 0.5
