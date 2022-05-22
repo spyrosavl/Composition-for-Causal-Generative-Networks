@@ -106,7 +106,9 @@ class ImagenetVanilla(Dataset) :
             ims_path = join(root, 'val')
             t_list = [transforms.Resize(256), transforms.CenterCrop(224)]
 
-        t_list += [transforms.ToTensor(), normalize]
+        #t_list += [transforms.ToTensor(), normalize]
+
+        t_list = [transforms.Resize(256), transforms.CenterCrop(256), transforms.ToTensor()]
         self.T_ims = transforms.Compose(t_list)
 
         self.classes = sorted(os.listdir(ims_path))
@@ -184,6 +186,7 @@ class ImagenetCounterfactual(Dataset):
     @staticmethod
     def get_data(p, train , mode):
         subdirs = glob(p + '_train*') if train else glob(p + '_val*')
+
         dfs = []
         for sub in subdirs:
             df = pd.read_csv(join(sub, 'labels.csv'), index_col=0)

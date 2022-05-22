@@ -59,10 +59,10 @@ if __name__ == "__main__":
     # download weights for loss ablation study
     weight_dir = join(REPO_PATH, "cgn_framework/imagenet/weights")
     paths = [
-        join(weight_dir, "bg-ablation.pth"),
-        join(weight_dir, "rec-ablation.pth"),
-        join(weight_dir, "shape-ablation.pth"),
-        join(weight_dir, "text-ablation.pth"),
+        # join(weight_dir, "bg-ablation.pth"),
+        # join(weight_dir, "rec-ablation.pth"),
+        # join(weight_dir, "shape-ablation.pth"),
+        # join(weight_dir, "text-ablation.pth"),
     ]
     ids = [
         "1RURmaClHfCD7tthuIqXczYs_yBK_6Lgv",
