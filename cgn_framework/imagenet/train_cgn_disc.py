@@ -125,8 +125,8 @@ def fit(cfg, cgn, discriminator, opts, losses, device):
         x_gt, mask, premask, foreground, background, background_mask, inp = cgn()
         x_gen = mask * foreground + (1 - mask) * background
         
-        y_gen = inp[1].to(device).long()  # random choice of class, same for all IMs; getting the one-hot encoded class
-        print(f"Ygen is shape {y_gen.shape}, len {len(y_gen)}, and type {type(y_gen)} looks like: {y_gen} ")
+        y_gen = inp[1].to(device).long().squeeze(-1)  # random choice of class, same for all IMs; getting the one-hot encoded class
+        print(f"Ygen is shape {y_gen.shape}, len {len(y_gen)}, and looks like: {y_gen} ")
         valid = torch.ones(len(y_gen),).to(device)  
         fake = torch.zeros(len(y_gen),).to(device)
         
