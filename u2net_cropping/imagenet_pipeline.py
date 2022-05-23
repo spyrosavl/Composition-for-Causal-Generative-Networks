@@ -90,7 +90,7 @@ def train_classifier(args: dict = dict(lr=0.001), prefix="in-mini", seed=0, disp
         # all arguments used are defaults given in their repo/paper
         arguments = f"-a resnet50 -b 32 --lr {args.lr} -j 6 --pretrained"\
             f" --data 'imagenet/data/{prefix}' --cf_data 'imagenet/data/{prefix}'"\
-            f" --name {run_name} --seed {seed} --ignore_time_in_filename --gpu 0 --epochs 2" #TODO
+            f" --name {run_name} --seed {seed} --ignore_time_in_filename --epochs {disp_epoch}" #TODO
         cmd = f"python {script_path} {arguments}"
         call(cmd, shell=True, cwd='../cgn_framework')
     else:
@@ -179,7 +179,7 @@ def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=
 
 
 if __name__ == "__main__":
-    metrics_clf, df_ood = run_experiments(seed=0, generate_cf_data=True, disp_epoch=34, ignore_cache=True)
+    metrics_clf, df_ood = run_experiments(seed=0, generate_cf_data=True, disp_epoch=1, ignore_cache=True) #TODO
 
     # construct Table 3 of the paper
     heads = ["shape", "texture", "bg"]
