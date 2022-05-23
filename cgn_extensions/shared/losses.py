@@ -62,6 +62,11 @@ def get_sampled_patches(prob_maps, paint, patch_sz=[30, 30], sample_sz=500, n_up
 
     return torch.cat(mode_patches)
 
+def get_img_grads(img):
+    """ Get the gradients of an image along the x & y dimensions """
+    pass 
+
+
 # adversarial losses
 
 class BigGAN_Loss(nn.Module):
@@ -257,5 +262,23 @@ class BackgroundLoss(nn.Module):
 """ Borrowed from https://arxiv.org/pdf/1908.05932.pdf """
 
 class PoisBlendingLoss(nn.Module):
+
+    def __init__(self, loss_weight, mask):
+        self.loss_weight = loss_weight
+        self.mask = mask  # fg mask, marking the pixels that needed to be blended in
     
+    def __call__(self, bg_img, out_img):
+        
+        # get the gradients of both images (on their intensities (ie, the average rgb values))
+        bg_img_i = torch.mean(bg_img, 1).squeeze()
+        out_img_i = torch.mean(out_img, 1).squeeze()
+
+        d_bg_img = get_img_grads(bg_img_i)
+        out_img = get_img_grads(out_img_i)
+
+        # for the self.mask pixels that are 0
+            # get the difference of the gradients d_bg_img - d_composed_img
+            # get its norm (squared?)
+        
+        # return it
 
