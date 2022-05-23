@@ -81,7 +81,7 @@ def save_sample_single(cgn, u_fixed, sample_path, ep_str):
 
     cgn.train()
 
-def fit(cfg, cgn, discriminator, opts, losses):
+def fit(cfg, cgn, discriminator, opts, losses, device):
 
     # total number of episodes, accounted for batch accumulation
     episodes = cfg.TRAIN.EPISODES
@@ -115,8 +115,6 @@ def fit(cfg, cgn, discriminator, opts, losses):
     cgn.train()
     L_l1, L_perc, L_binary, L_mask, L_text, L_bg, L_adv= losses
     save_samples = save_sample_single if cfg.LOG.SAVE_SINGLES else save_sample_sheet
-    
-    device = device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     pbar = tqdm(range(*ep_range))
     for i, ep in enumerate(pbar):
@@ -124,12 +122,14 @@ def fit(cfg, cgn, discriminator, opts, losses):
         #
         # Training CGN & cGAN
         #
-        x_gt, mask, premask, foreground, background, background_mask, y_gen = CGNfDISC()
+        x_gt, mask, premask, foreground, background, background_mask, inp = cgn()
         x_gen = mask * foreground + (1 - mask) * background
         
-        valid = torch.ones(len(y_gt),).to(device)  
-        fake = torch.zeros(len(y_gt),).to(device)
-
+        y_gen = inp[1].to(device).long()  # random choice of class, same for all IMs; getting the one-hot encoded class
+        print(f"Ygen is shape {y_gen.shape}, len {len(y_gen)}, and type {type(y_gen)} looks like: {y_gen} ")
+        valid = torch.ones(len(y_gen),).to(device)  
+        fake = torch.zeros(len(y_gen),).to(device)
+        
         # Calc Losses                  
         validity = discriminator(x_gen, y_gen)  # binary vector of len=batch_size (1=fake/generated)
 
@@ -168,8 +168,8 @@ def fit(cfg, cgn, discriminator, opts, losses):
         opts.zero_grad(['discriminator'])  # ToDo: add discriminator and its optimizer in main
 
         # Discriminate real and fake
-        validity_real = discriminator(x_gt, y_gen)
-        validity_fake = discriminator(x_gen.detach(), y_gen)
+        validity_real = discriminator(x_gt, y_gen[0])
+        validity_fake = discriminator(x_gen.detach(), y_gen[0])
 
         # Discriminator losses
         losses_d = {}
@@ -181,29 +181,29 @@ def fit(cfg, cgn, discriminator, opts, losses):
         loss_d.backward()
         opts.step(['discriminator'], False)
 
-         # Saving
-        batches_done = epoch * len(dataloader) + i
-        if batches_done % cfg.LOG.SAVE_ITER == 0:
-            print("Saving samples and weights")
-            sample_image(cgn, sample_path, batches_done, device, n_row=3)
-            torch.save(cgn.state_dict(), f"{weights_path}/ckp_{batches_done:d}.pth")
+        #  # Saving
+        # batches_done = epoch * len(dataloader) + i
+        # if batches_done % cfg.LOG.SAVE_ITER == 0:
+        #     print("Saving samples and weights")
+        #     sample_image(cgn, sample_path, batches_done, device, n_row=3)
+        #     torch.save(cgn.state_dict(), f"{weights_path}/ckp_{batches_done:d}.pth")
 
-        # Logging
-        if cfg.LOG.LOSSES:
-            msg = f"[Batch {i}/{len(dataloader)}]"
-            msg += ''.join([f"[{k}: {v:.3f}]" for k, v in losses_d.items()])
-            msg += ''.join([f"[{k}: {v:.3f}]" for k, v in losses_g.items()])
-            pbar.set_description(msg)
+        # # Logging
+        # if cfg.LOG.LOSSES:
+        #     msg = f"[Batch {i}/{len(dataloader)}]"
+        #     msg += ''.join([f"[{k}: {v:.3f}]" for k, v in losses_d.items()])
+        #     msg += ''.join([f"[{k}: {v:.3f}]" for k, v in losses_g.items()])
+        #     pbar.set_description(msg)
 
 def main(cfg):
     # model init
-    cgn = CGN(
+    cgn = CGNfDISC(
         batch_sz=cfg.TRAIN.BATCH_SZ,
         truncation=cfg.MODEL.TRUNCATION,
         pretrained=True,
     )
-    Discriminator = DiscLin if cfg.MODEL.DISC == 'linear' else DiscConv
-    discriminator = Discriminator(n_classes=cfg.TRAIN.DATASET, ndf=cfg.MODEL.NDF)
+    Discriminator = DiscLin  #if cfg.MODEL.DISC == 'linear' else DiscConv
+    discriminator = Discriminator(n_classes=cfg.MODEL.N_CLASSES, ndf=cfg.MODEL.NDF)
     
 
     if cfg.WEIGHTS_PATH:
@@ -234,7 +234,7 @@ def main(cfg):
     cgn = cgn.to(device)
     losses = (l.to(device) for l in losses)
 
-    fit(cfg, cgn, discriminator, opts, losses)
+    fit(cfg, cgn, discriminator, opts, losses, device)
 
 def merge_args_and_cfg(args, cfg):
     cfg.MODEL_NAME = args.model_name

@@ -72,7 +72,6 @@ def fit(cfg, cgn, discriminator, dataloader, opts, losses, device, use_time_in_f
             # Generate a batch of images
             mask, foreground, background = cgn(y_gen)
             x_gen = mask * foreground + (1 - mask) * background  # composition
-
             # Calc Losses
             validity = discriminator(x_gen, y_gen)  # binary vector of len=batch_size (1=fake/generated)
 
