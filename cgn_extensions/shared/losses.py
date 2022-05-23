@@ -251,3 +251,11 @@ class BackgroundLoss(nn.Module):
         loss = self.loss_weight * mask.reshape(mask.shape[0], -1).mean(1)
         loss = torch.max(torch.zeros_like(loss), loss)
         return loss
+
+
+# Poisson blending loss
+""" Borrowed from https://arxiv.org/pdf/1908.05932.pdf """
+
+class PoisBlendingLoss(nn.Module):
+    
+
