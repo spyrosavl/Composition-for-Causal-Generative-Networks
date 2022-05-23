@@ -161,7 +161,7 @@ def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=
         #TODO change back to all sample
         # n_train=34745,
         # n_val=3923,
-        generate_counterfactual_dataset(prefix="in-mini", seed=seed, n_train= 5, n_val=5)
+        generate_counterfactual_dataset(prefix="in-mini", seed=seed, n_train= 20000, n_val=3000)
     else:
         print("Since generate_cf_data=False, skipping CF dataset generation.")
         print("Loading results for classification and OOD experiments from cache.")
