@@ -3,6 +3,8 @@ bg_challenge
 media
 sketch/
 pytorch_grad_cam/
+notes.md
+tests.ipynb
 
 # slurm
 slurm_output*.out

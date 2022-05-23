@@ -9,7 +9,10 @@ import torch.nn.functional as F
 import cv2 as cv
 from imagenet.models import BigGAN, U2NET
 from utils import toggle_grad
-from imagenet.dataloader import get_imagenet_dls
+
+import repackage
+repackage.up(2)
+from cgn_extensions.imagenet.dataloader import get_imagenet_dls
 from torchvision.utils import make_grid
 
 
@@ -41,7 +44,7 @@ def get_all_patches(ims, patch_sz=[5, 5], pad=True):
 
     return patch_batch
 
-def get_sampled_patches(prob_maps, paint, patch_sz=[30, 30], sample_sz=500, n_up=None):
+def get_sampled_patches(prob_maps, paint, patch_sz=[30, 30], sample_sz=100, n_up=None):
     paint_shape = paint.shape[-2:]
     prob_maps = F.interpolate(prob_maps, (128, 128), mode='bicubic', align_corners=False)
     paint = F.interpolate(paint, (128, 128), mode='bicubic', align_corners=False)
