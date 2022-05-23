@@ -22,10 +22,10 @@ class DiscLin(nn.Module):
             nn.Linear(ndf, 1),
         )
 
-    def forward(self, img, labels):
+    def forward(self, img, labels):  # labels of size [1, 3082]
         # Concatenate label embedding and image to produce input
         d_in = torch.cat((img.view(img.size(0), -1), self.label_embedding(labels)), -1)
-        validity = self.model(d_in)
+        validity = self.model(d_in)  
         return validity.squeeze()
 
 class DiscConv(nn.Module):
@@ -54,11 +54,14 @@ class DiscConv(nn.Module):
 
     def forward(self, ims, labels):
         # build embedding channel
+        print(f"labels are initially shape{labels.shape}")
         embedding = self.label_embedding(labels)
+        print(f"embedding is then shape{labels.shape}")
         embedding = embedding.reshape(-1, 1, 1, 1)
         embedding = embedding.repeat(1, 1, *ims.shape[-2:])
-
+        print(f"embedding are then shape{labels.shape}")
         out = self.model(torch.cat([ims, embedding], 1))
+        print(f"output shape {out.shape}")
         return out.squeeze()
 
 
