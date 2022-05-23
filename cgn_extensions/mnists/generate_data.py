@@ -1,3 +1,7 @@
+""" Copy of cgn_framework/generate_data.py
+Here we add and experiment with improvements / refinements in the composed outputs
+"""
+
 import argparse
 import warnings
 from tqdm import trange

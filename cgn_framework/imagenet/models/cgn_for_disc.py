@@ -1,3 +1,5 @@
+""" copy of the imagenet cgn module, but returns the labels in forward path to be used by the discriminator"""
+
 import os
 
 from scipy.stats import truncnorm
@@ -9,9 +11,9 @@ import torch.nn.functional as F
 from imagenet.models import BigGAN, U2NET
 from utils import toggle_grad
 
-class CGN(nn.Module):
+class CGNfDISC(nn.Module):
     def __init__(self, batch_sz, truncation=0.5, pretrained=True):
-        super(CGN, self).__init__()
+        super(CGNfDISC, self).__init__()
 
         self.dim_u = 128
         self.truncation = truncation
@@ -109,4 +111,4 @@ class CGN(nn.Module):
         background = self.f_bg(*inp2)
         background_mask = self.u2net(background)
 
-        return x_gt, mask, premask.detach(), foreground, background, background_mask 
+        return x_gt, mask, premask.detach(), foreground, background, background_mask, inp0

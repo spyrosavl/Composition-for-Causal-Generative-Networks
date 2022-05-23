@@ -29,7 +29,8 @@ class DiscLin(nn.Module):
         return validity.squeeze()
 
 class DiscConv(nn.Module):
-    def __init__(self, n_classes, ndf):
+    def __init__(self, n_classes, ndf):  
+        # arg ndf:  sets the depth of feature maps propagated through the discriminator
         super(DiscConv, self).__init__()
         cin = 4  # RGB + Embedding
         self.label_embedding = nn.Embedding(n_classes, 1)
@@ -59,3 +60,11 @@ class DiscConv(nn.Module):
 
         out = self.model(torch.cat([ims, embedding], 1))
         return out.squeeze()
+
+
+class ComposerDisc(nn.Module):
+    """ Discriminator on the composer's output - predicting the IM composition vs cGAN output """
+
+    def __init__(self, n_classes, ndf):
+        super(ComposerDisc, self).__init__()
+        cin = 3  # 3-colour channels of the composer's output image
