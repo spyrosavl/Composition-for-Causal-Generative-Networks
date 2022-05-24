@@ -107,7 +107,7 @@ class ImagenetVanilla(Dataset) :
             t_list = [transforms.Resize(256), transforms.CenterCrop(224)]
 
         #t_list += [transforms.ToTensor(), normalize]
-        t_list = [transforms.Resize(256), transforms.CenterCrop(256), transforms.ToTensor()]
+        t_list = [transforms.Resize(256), transforms.CenterCrop(256), transforms.ToTensor(), normalize]
 
         self.T_ims = transforms.Compose(t_list)
 
