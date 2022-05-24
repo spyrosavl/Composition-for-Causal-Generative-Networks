@@ -113,7 +113,7 @@ class CGN():
 
         batch_imgs = torch.stack([shape_img, fg_img, bg_img]).to(self.device)
 
-        masks = self.us2net(batch_imgs).squeeze(1).unsqueeze(3).detach()
+        masks = self.us2net(batch_imgs).squeeze(1).unsqueeze(3).detach().cpu()
 
         if debug:
             #Plot masks
