@@ -7,13 +7,14 @@ cfg = __C
 # General
 __C.MODEL_NAME = 'tmp'
 __C.CGN_WEIGHTS_PATH = ''
+__C.BGAN_WEIGHTS_PATH = ''
 
 # Logging
 __C.LOG = CN()
-__C.LOG.SAVE_ITER = 2000
+__C.LOG.SAVE_ITER = 1000
 __C.LOG.SAMPLED_FIXED_NOISE = False
 __C.LOG.SAVE_SINGLES = False
-__C.LOG.LOSSES = False
+__C.LOG.LOSSES = True
 
 # Model
 __C.MODEL = CN()
@@ -22,7 +23,7 @@ __C.MODEL.TRUNCATION = 1.0
 
 # Training
 __C.TRAIN = CN()
-__C.TRAIN.EPISODES = 50
+__C.TRAIN.EPOCHS = 50
 __C.TRAIN.BATCH_SZ = 256
 __C.TRAIN.BATCH_ACC = 8
 

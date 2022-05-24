@@ -5,6 +5,7 @@ from os.path import join
 import pathlib
 from tqdm import tqdm
 import argparse
+import csv
 
 import repackage
 repackage.up()
@@ -25,65 +26,53 @@ from shared.losses import *
 from utils import Optimizers
 
 
-def save_sample_sheet(blend_gan, u_fixed, sample_path, ep_str):
+def save_sample_sheet(blend_gan, cgn, sample_path, ep_str):
+    
     blend_gan.eval()
-    dev = u_fixed.to(cgn.get_device())
-    ys = [15, 251, 330, 382, 385, 483, 559, 751, 938, 947, 999]
 
     to_save = []
     with torch.no_grad():
-        for y in ys:
+        #for y in ys:
             # generate
-            y_vec = blend_gan.get_class_vec(y, sz=1)
-            inp = (u_fixed.to(dev), y_vec.to(dev), cgn.truncation)
-            x_gt, mask, premask, foreground, background, bg_mask = cgn(inp)
-            x_gen = mask * foreground + (1 - mask) * background
-
-            # build class grid
-            to_plot = [premask, foreground, background, x_gen, x_gt]
-            grid = make_grid(torch.cat(to_plot).detach().cpu(),
+            # y_vec = blend_gan.get_class_vec(y, sz=1)
+            # inp = (u_fixed.to(dev), y_vec.to(dev), cgn.truncation)
+        x_gt, mask, premask, foreground, background, bg_mask = cgn()
+        x_gen = mask * foreground + (1 - mask) * background
+        x_l = blend_gan(x_gen)
+        # build class grid
+        to_plot = [x_gen, x_l, x_gt]
+        grid = make_grid(torch.cat(to_plot).detach().cpu(),
                              nrow=len(to_plot), padding=2, normalize=True)
 
-            # add unnormalized mask
-            mask = Pad(2)(mask[0].repeat(3, 1, 1)).detach().cpu()
-            grid = torch.cat([mask, grid], 2)
+        # save to disk
+        to_save.append(grid)
+        del to_plot, mask, premask, foreground, background, x_gen, x_gt
 
-            # save to disk
-            to_save.append(grid)
-            del to_plot, mask, premask, foreground, background, x_gen, x_gt
-
-    # save the image
+    #save the image
     path = join(sample_path, f'cls_sheet_' + ep_str + '.png')
     torchvision.utils.save_image(torch.cat(to_save, 1), path)
     blend_gan.train()
 
-def save_sample_single(blend_gan, u_fixed, sample_path, ep_str):
+def save_sample_single(blend_gan, cgn, sample_path, ep_str):
+    
     blend_gan.eval()
-    dev = u_fixed.to(blend_gan.get_device())
-
-    ys = [15, 251, 330, 382, 385, 483, 559, 751, 938, 947, 999]
+    # ys = [15, 251, 330, 382, 385, 483, 559, 751, 938, 947, 999]
     with torch.no_grad():
-        for y in ys:
-            # generate
-            y_vec = blend_gan.get_class_vec(y, sz=1)
-            inp = (u_fixed.to(dev), y_vec.to(dev), blend_gan.truncation)
-            _, mask, premask, foreground, background, _ = blend_gan(inp)
-            x_gen = mask * foreground + (1 - mask) * background
+        #for y in ys:
+        # generate
+        _, mask, _, foreground, background, _ = cgn()
+        x = mask * foreground + (1 - mask) * background
+        x_l = blend_gan(x)
 
-            # save_images
-            path = join(sample_path, f'{y}_1_premask_' + ep_str + '.png')
-            torchvision.utils.save_image(premask, path, normalize=True)
-            path = join(sample_path, f'{y}_2_mask_' + ep_str + '.png')
-            torchvision.utils.save_image(mask, path, normalize=True)
-            path = join(sample_path, f'{y}_3_texture_' + ep_str + '.png')
-            torchvision.utils.save_image(foreground, path, normalize=True)
-            path = join(sample_path, f'{y}_4_bgs_' + ep_str + '.png')
-            torchvision.utils.save_image(background, path, normalize=True)
-            path = join(sample_path, f'{y}_5_gen_ims_' + ep_str + '.png')
-            torchvision.utils.save_image(x_gen, path, normalize=True)
+        # save_images # ToDo: consider adding image classes
+        path = join(sample_path, f'1_composite_img_x_' + ep_str + '.png')
+        torchvision.utils.save_image(x, path, normalize=True)
+        path = join(sample_path, f'_2_refined_img_xl_' + ep_str + '.png')
+        torchvision.utils.save_image(x_l, path, normalize=True)
     blend_gan.train()
 
-def fit(cfg, blend_gan, discriminator, cgn, opts, losses):
+
+def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
     """ Training the blend_gan
     Args:
         - cfg: configurations
@@ -93,54 +82,94 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses):
         - opts: optimisers
         - losses: reconstruction (MSE) & adverserial
     """
+
+    if device is None: device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
     # total number of episodes, accounted for batch accumulation
-    episodes = cfg.TRAIN.EPISODES
+    episodes = cfg.TRAIN.EPOCHS
     episodes *= cfg.TRAIN.BATCH_ACC
 
     # directories for experiments and storing results
     time_str = datetime.now().strftime("%Y_%m_%d_%H_%M")
-    # if cfg.WEIGHTS_PATH:
-    #     weights_path = str(pathlib.Path(cfg.WEIGHTS_PATH).parent)
-    #     start_ep = int(pathlib.Path(cfg.WEIGHTS_PATH).stem[3:])
-    #     sample_path = weights_path.replace('weights', 'samples')
-    #     ep_range = (start_ep, start_ep + episodes)
-    # else:
-    #     model_path = join('imagenet', 'experiments',
-    #                       f'cgn_{time_str}_{cfg.MODEL_NAME}')
-    #     weights_path = join(model_path, 'weights')
-    #     sample_path = join(model_path, 'samples')
-    #     pathlib.Path(weights_path).mkdir(parents=True, exist_ok=True)
-    #     pathlib.Path(sample_path).mkdir(parents=True, exist_ok=True)
-    #     ep_range = (0, episodes)
+    model_path = join('imagenet', 'experiments',
+                          f'bgn_{time_str}_{cfg.MODEL_NAME}')
+    weights_path = join(model_path, 'weights')
+    sample_path = join(model_path, 'samples')
+    loss_path = join(model_path, 'losses')
+
+    pathlib.Path(weights_path).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(sample_path).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(loss_path).mkdir(parents=True, exist_ok=True)
     ep_range = (0, episodes)
 
     # Training loop
     blend_gan.train()
     L_l2, L_adv = losses
+    loss_per_epoch = {'blend_gan': [0,1, 1.22424],
+                    'discriminator': [0,2]}  # recording losses to plot later
+
+    save_samples = save_sample_single if cfg.LOG.SAVE_SINGLES else save_sample_sheet
 
     pbar = tqdm(range(*ep_range))
-    print(f"training for  {ep_range[1]} episodes...") # ToDo: remove
+
     for i, ep in enumerate(pbar):
 
         """ Training the blend_gan """
-        # generate x (copy_paste_compose)
+        opts.zero_grad(['blend_gan'])
+
         # generate x_gt (from cGAN)
+        x_gt, mask, premask, foreground, background, background_mask = cgn()
+
+        # generate x (copy_paste_compose)
+        x = mask * foreground + (1 - mask) * background
 
         # get the low resolution, well-blended, semantic & colour accurate output x_l
+        x_l = blend_gan(x)
+        
+        # adverserial gts, valid == generated from the blend gan
+        valid = torch.ones(x_gt.size(0),).to(device)  # generate labels of length batch_size
+        fake = torch.zeros(x_gt.size(0),).to(device) 
+
+        # calculate losses
+        losses_g = {} 
+        losses_g['L_l2'] = L_l2(x_l, x_gt)
+        # losses_g['L_adv'] = L_adv()
+        # print(f"LOSSES in epi: {ep}", losses_g)
+
+        loss_g = sum(losses_g.values())
+        loss_g.backward()
+        opts.step(['blend_gan'], False)
+
+        # record average loss per batch
+        loss_per_epoch['blend_gan'].append(int((loss_g/cfg.TRAIN.BATCH_ACC).item()))
+        
+
+        # pass inputs into discriminator ToDo: which model?
+        """ Training the discriminator """ 
+        # TODO
 
 
-        # pass inputs into discriminator ToDo: which model? 
+        # Saving
+        if not i % cfg.LOG.SAVE_ITER:
+            ep_str = f'ep_{ep:07}'
+            save_samples(blend_gan, cgn, sample_path, ep_str)
+            torch.save(blend_gan.state_dict(), join(weights_path, ep_str + '.pth'))
 
+        # Logging
+        if cfg.LOG.LOSSES:  
+            msg = ''.join([f"[{k}: {v:.3f}]" for k, v in losses_g.items()])
+            pbar.set_description(msg)
+            save_samples(blend_gan, cgn, sample_path, ep_str)
+            torch.save(blend_gan.state_dict(), join(weights_path, ep_str + '.pth'))
 
-        # get losses
+    if cfg.LOG.LOSSES: # TODO: NOT WORKING
+        path = join(loss_path, 'losses.csv')
+        with open(path, 'w') as csvfile:
+            writer = csv.writer(csvfile, delimiter=';')
+            writer.writerow(loss_per_epoch.keys())
+            writer.writerows(zip(*loss_per_epoch.values()))
 
-        """ Training the discriminator """
-
-        break 
-        # ToDo:
-
-
-
+    
 def main(cfg):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -158,7 +187,7 @@ def main(cfg):
     )
 
     if cfg.CGN_WEIGHTS_PATH:
-        print(f"Loading CGN weights from {cfg.CGN_WEIGHTS_PATH}")
+        # print(f"Loading CGN weights from {cfg.CGN_WEIGHTS_PATH}")
         weights = torch.load(cfg.CGN_WEIGHTS_PATH, map_location=torch.device(device))
         weights = {k.replace('module.', ''): v for k, v in weights.items()}
         cgn.load_state_dict(weights)
@@ -209,7 +238,7 @@ if __name__ == "__main__":
                         help='provide path to continue training')
     parser.add_argument('--epochs', type=int, default=300,
                         help="We don't do dataloading, hence, one episode = one gradient update.")
-    parser.add_argument('--batch_sz', type=int, default=1,
+    parser.add_argument('--batch_sz', type=int, default=4000,
                         help='Batch size, use in conjunciton with batch_acc')
     parser.add_argument('--batch_acc', type=int, default=4000,
                         help='pseudo_batch_size = batch_acc*batch size')
