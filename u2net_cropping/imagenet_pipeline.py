@@ -13,8 +13,6 @@ import torch
 import argparse
 
 from imagenet_eval_ood_benchmark import eval_ood
-from generate_data import main as generate_data_main
-
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -34,6 +32,8 @@ def generate_counterfactual_dataset(
     """Generates CF dataset for ImageNet (size of IN-mini)"""
     seed_everything(seed)
 
+    script_path = join(REPO_PATH, "cgn_framework/imagenet/generate_data_fake_cgn.py") #TODO Change this one
+
     # generate train and val dataset
     for mode in modes:        
         run_name = f"{prefix}_{mode}_trunc_{trunc}"
@@ -50,27 +50,11 @@ def generate_counterfactual_dataset(
         else:
             print("Generating {} dataset...".format(mode))
             print("WARNING: This will take about 3 hours for train set and 20 mins for validation set.")
-            # arguments = "--mode random --weights_path imagenet/weights/cgn.pth"\
-            #     f" --n_data {n_samples} --run_name {prefix}-{mode} --truncation {trunc} --batch_sz 1"\
-            #     f" --ignore_time_in_filename"
-            # cmd = f"python {script_path} {arguments}"
-            # call(cmd, shell=True)
-            args = argparse.Namespace(
-                mode="random",
-                weights_path="../cgn_framework/imagenet/weights/cgn.pth",
-                n_data=n_samples,
-                run_name=f"{prefix}_{mode}",
-                truncation=trunc,
-                batch_sz=1,
-                ignore_time_in_filename=True,
-                classes=[0, 0, 0],
-                interp='',
-                interp_cls=-1,
-                midpoints=6,
-                save_noise=False,
-                save_single=False,
-            )
-            generate_data_main(args)
+            arguments = "--mode random --weights_path imagenet/weights/cgn.pth"\
+                f" --n_data {n_samples} --run_name {prefix}-{mode} --truncation {trunc} --batch_sz 1"\
+                f" --ignore_time_in_filename"
+            cmd = f"python {script_path} {arguments}"
+            call(cmd, shell=True, cwd='../cgn_framework')
 
 
 def train_classifier(args: dict = dict(lr=0.001), prefix="in-mini", seed=0, disp_epoch=45, show=False, ignore_cache=False):
@@ -154,7 +138,7 @@ def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=
     """
     seed_everything(seed)
 
-    # step 1: generate dataset
+    #step 1: generate dataset
     if generate_cf_data:
         print("WARNING: You have passed generate_cf_data=True.")
         print("WARNING: This will take about 3 hours for train set and 20 mins for validation set.")

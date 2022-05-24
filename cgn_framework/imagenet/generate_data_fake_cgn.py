@@ -19,8 +19,8 @@ from torchvision.utils import make_grid
 import repackage
 repackage.up()
 
-from cgn_framework.imagenet.models.fake_cgn import CGN
-from poisson_blending import poissonSeamlessCloning
+from imagenet.models.fake_cgn import CGN
+from imagenet.models.poisson_blending import poissonSeamlessCloning
 
 def save_image(im, path):
     torchvision.utils.save_image(im.detach().cpu(), path, normalize=True)
@@ -177,7 +177,7 @@ def main(args):
     # path setup
     time_str = datetime.now().strftime("%Y_%m_%d_%H_") if not args.ignore_time_in_filename else ""
     trunc_str = f"{args.run_name}_trunc_{args.truncation}"
-    data_path = join('..', 'cgn_framework', 'imagenet', 'data', 'cgn', 'fake_cgn', time_str + trunc_str) #TODO change this
+    data_path = join('imagenet', 'data', 'cgn', 'fake_cgn', time_str + trunc_str) #TODO change this
     ims_path = join(data_path, 'ims')
     pathlib.Path(ims_path).mkdir(parents=True, exist_ok=True)
     print(f"Saving data to {data_path}")
