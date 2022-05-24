@@ -16,15 +16,10 @@ def weights_init(m):
 
 class Encoder(nn.Module):
     
-    def __init__(self, ngf=64, z_size=4000, img_size = (3, 256, 256)):
+    def __init__(self, ngf=64, z_size=4000, as_discriminator=False, img_size = (3, 256, 256)):
         super(Encoder, self).__init__()
 
-
-
-
-
-        self.conv4 = nn.Conv2d(256, 512, 4, 2, 1)
-        self.conv5 = nn.Conv2d(512, 4000, 4)
+        self.discriminator = as_discriminator
 
         self.model = nn.Sequential(
             nn.Conv2d(in_channels=3, out_channels=ngf, kernel_size=(4,4), stride=2, padding=1, bias=False), # outputs 112x112
@@ -44,14 +39,22 @@ class Encoder(nn.Module):
             nn.Conv2d(in_channels=512, out_channels=z_size, kernel_size=(4,4), stride=1, padding=0, bias=False)  
         )  # outputs (Nx4000x13x13)
 
+        self.clf = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(131072, 1)
+        )
+
         self.model.apply(weights_init)
         self.output.apply(weights_init)
+        self.clf.apply(weights_init)
 
     def forward(self, input):
         x = self.model(input)
-        x = self.output(x)
+        if self.discriminator:
+            x = self.clf(x)
+        else:
+            x = self.output(x)
         return x
-
 
 
 class Decoder(nn.Module):
@@ -59,7 +62,7 @@ class Decoder(nn.Module):
     def __init__(self, ndf=512, z_size=4000, n_classes=1000, out_img_size= (3, 256, 256)):
         super(Decoder, self).__init__()
 
-        self.dconv1 = nn.ConvTranspose2d(64, 3, 4, 2, 1)
+        # self.dconv1 = nn.ConvTranspose2d(64, 3, 4, 2, 1)
 
         self.model = nn.Sequential(
             nn.ConvTranspose2d(in_channels=z_size, out_channels=ndf, kernel_size=(4,4), stride=1, padding=0, bias=False),
@@ -69,7 +72,7 @@ class Decoder(nn.Module):
             nn.ReLU(),
             nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=(4,4), stride=2, padding=1, bias=False),
             nn.BatchNorm2d(128),
-            nn.ReLU(),  #128x36x36
+            nn.ReLU(),  
             nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=(4,4), stride=2, padding=1, bias=False),
             nn.BatchNorm2d(64),
             nn.ReLU(),
@@ -125,6 +128,10 @@ import matplotlib.pyplot as plt
 dtype = torch.double
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
+
+
+# example python implementation: https://github.com/msinghal34/Image-Blending-using-GP-GANs/blob/master/src/PyramidBlending.py
 
 class Net(nn.Module):
 
