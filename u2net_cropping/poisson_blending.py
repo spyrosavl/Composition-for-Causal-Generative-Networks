@@ -25,7 +25,7 @@ def poissonSeamlessCloning(img_source, img_target, src_mask, offset=(0, 0)):
     assert img_source.ndim == 3 and img_target.ndim == 3 and src_mask.ndim == 3
     assert img_source.shape[2] == img_target.shape[2] and img_source.shape[2] == 3
     assert src_mask.dtype == np.uint8 and img_source.dtype == np.uint8 and img_target.dtype == np.uint8
-    assert src_mask.max() == 1 and src_mask.min() == 0
+    assert src_mask.all() >= 0 and src_mask.all() <= 1
     assert img_source.max() <= 255 and img_source.min() >= 0
     assert img_target.max() <= 255 and img_target.min() >= 0
 

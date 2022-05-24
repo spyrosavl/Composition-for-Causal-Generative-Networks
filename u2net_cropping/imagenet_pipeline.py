@@ -82,6 +82,7 @@ def train_classifier(args: dict = dict(lr=0.001), prefix="in-mini", seed=0, disp
     run_name = f"{prefix}-classifier"
     expt_dir = join(REPO_PATH, "cgn_framework/imagenet/experiments", f"classifier__{run_name}")
     epoch_metrics_path = join(expt_dir, f"epochwise_metrics/epoch_{disp_epoch}.pt")
+    cf_data_path = f"imagenet/data/cgn/fake_cgn/{prefix}"
     if not exists(epoch_metrics_path) or ignore_cache:
         
         print("::::: Training classifier :::::")
@@ -89,8 +90,8 @@ def train_classifier(args: dict = dict(lr=0.001), prefix="in-mini", seed=0, disp
 
         # all arguments used are defaults given in their repo/paper
         arguments = f"-a resnet50 -b 32 --lr {args.lr} -j 6 --pretrained"\
-            f" --data 'imagenet/data/{prefix}' --cf_data 'imagenet/data/{prefix}'"\
-            f" --name {run_name} --seed {seed} --ignore_time_in_filename --epochs {disp_epoch}" #TODO
+            f" --data 'imagenet/data/{prefix}' --cf_data '{cf_data_path}'"\
+            f" --name {run_name} --seed {seed} --ignore_time_in_filename --epochs {disp_epoch}"
         cmd = f"python {script_path} {arguments}"
         call(cmd, shell=True, cwd='../cgn_framework')
     else:
@@ -145,7 +146,7 @@ def run_eval_on_ood_benchmarks(seed=0, ignore_cache=False, show=False):
     return df
 
 
-def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=False):
+def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=False, cf_no_train=34745, cf_no_val=3923):
     """Runs experiments on IN-mini dataset
 
     1. Generates CF dataset
@@ -158,10 +159,7 @@ def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=
         print("WARNING: You have passed generate_cf_data=True.")
         print("WARNING: This will take about 3 hours for train set and 20 mins for validation set.")
         print("\n::::: Generating CF dataset :::::\n")
-        #TODO change back to all sample
-        # n_train=34745,
-        # n_val=3923,
-        generate_counterfactual_dataset(prefix="in-mini", seed=seed, n_train= 20000, n_val=3000)
+        generate_counterfactual_dataset(prefix="in-mini", seed=seed, n_train=cf_no_train, n_val=cf_no_val)
     else:
         print("Since generate_cf_data=False, skipping CF dataset generation.")
         print("Loading results for classification and OOD experiments from cache.")
@@ -179,7 +177,12 @@ def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=
 
 
 if __name__ == "__main__":
-    metrics_clf, df_ood = run_experiments(seed=0, generate_cf_data=True, disp_epoch=1, ignore_cache=True) #TODO
+    metrics_clf, df_ood = run_experiments(  seed=0, 
+                                            generate_cf_data=True, 
+                                            disp_epoch=1, #TODO change number of epochs
+                                            ignore_cache=True,
+                                            cf_no_train=5,
+                                            cf_no_val=5) #TODO Change number of CF here
 
     # construct Table 3 of the paper
     heads = ["shape", "texture", "bg"]

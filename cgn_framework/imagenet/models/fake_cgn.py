@@ -83,7 +83,11 @@ class CGN():
     def load_state_dict(self, state_dict):
         pass
 
-    def __call__(self, ys, debug=False):
+    def __call__(self, ys, debug=False, seed=None):
+        if seed is not None:
+            torch.manual_seed(seed)
+            np.random.seed(seed)
+        
         assert len(ys) == 3, 'Provide 3 classes'
         shape_class, fg_class, bg_class = ys[0], ys[1], ys[2]
 
@@ -105,30 +109,31 @@ class CGN():
             plt.show()
 
         #Find Masks
-        threshold = 0.8
+        threshold = 0.2
 
         batch_imgs = torch.stack([shape_img, fg_img, bg_img]).to(self.device)
 
         masks = self.us2net(batch_imgs).squeeze(1).unsqueeze(3).detach()
 
+        if debug:
+            #Plot masks
+            fig, ax = plt.subplots(1,3, figsize=(15,5))
+            ax[0].imshow(masks[0].cpu().numpy())
+            ax[1].imshow(masks[1].cpu().numpy())
+            ax[2].imshow(masks[2].cpu().numpy())
+            plt.show()
+
         shape_mask = (masks[0] > threshold).float()
         fg_mask = (masks[1] > threshold).float()
         bg_mask = (masks[2] > threshold).float()
 
-        if debug:
-            #Plot masks
-            fig, ax = plt.subplots(1,3, figsize=(15,5))
-            ax[0].imshow(shape_mask.cpu().numpy())
-            ax[1].imshow(fg_mask.cpu().numpy())
-            ax[2].imshow(bg_mask.cpu().numpy())
-            plt.show()
 
         #Inpaint bg (fill bg holes)
         bg_img_cropped = np.clip((1-bg_mask) * bg_img.transpose(0,1).transpose(1,2), 0, 1)
         bg_img_cv = (bg_img_cropped.numpy()*255).astype(np.uint8)
         bg_img_inpainted = cv.inpaint(bg_img_cv, bg_mask.numpy().astype(np.uint8), 5, cv.INPAINT_NS)/255
 
-        texture = get_sampled_patches(fg_mask.unsqueeze(0).transpose(1,3), fg_img.unsqueeze(0))
+        texture = get_sampled_patches((1-fg_mask).unsqueeze(0).transpose(1,3), fg_img.unsqueeze(0))
 
         mask = shape_mask.unsqueeze(0).transpose(2,3).transpose(1,2)
         bg_img_inpainted = torch.Tensor(bg_img_inpainted.transpose(2,0,1)).unsqueeze(0)
