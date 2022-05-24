@@ -211,7 +211,7 @@ if __name__ == "__main__":
                         help='Truncation value for noise sampling')
     parser.add_argument('--episodes', type=int, default=300,
                         help="We don't do dataloading, hence, one episode = one gradient update.")
-    parser.add_argument('--batch_sz', type=int, default=1,
+    parser.add_argument('--batch_sz', type=int, default=4000,
                         help='Batch size, use in conjunciton with batch_acc')
     parser.add_argument('--batch_acc', type=int, default=4000,
                         help='pseudo_batch_size = batch_acc*batch size')
