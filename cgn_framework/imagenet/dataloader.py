@@ -135,6 +135,15 @@ class ImagenetVanilla(Dataset) :
             'labels': transform_labels(labels),
         }
 
+    def load_image(self, index):
+        ims = Image.open(self.im_paths[index]).convert('RGB')
+        t = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(256),
+            transforms.ToTensor()
+        ])
+        return t(ims)
+
     def __len__(self):
         return len(self.im_paths)
 

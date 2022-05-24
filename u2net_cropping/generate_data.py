@@ -20,6 +20,7 @@ import repackage
 repackage.up()
 
 from cgn_framework.imagenet.models.fake_cgn import CGN
+from poisson_blending import poissonSeamlessCloning
 
 def save_image(im, path):
     torchvision.utils.save_image(im.detach().cpu(), path, normalize=True)
@@ -176,7 +177,7 @@ def main(args):
     # path setup
     time_str = datetime.now().strftime("%Y_%m_%d_%H_") if not args.ignore_time_in_filename else ""
     trunc_str = f"{args.run_name}_trunc_{args.truncation}"
-    data_path = join('..', 'cgn_framework', 'imagenet', 'data', time_str + trunc_str)
+    data_path = join('..', 'cgn_framework', 'imagenet', 'data', 'cgn', 'fake_cgn', time_str + trunc_str) #TODO change this
     ims_path = join(data_path, 'ims')
     pathlib.Path(ims_path).mkdir(parents=True, exist_ok=True)
     print(f"Saving data to {data_path}")
@@ -201,8 +202,19 @@ def main(args):
                              num_midpoints=args.midpoints, save_path=join(ims_path, im_name),
                              save_single=args.save_single, save_noise=args.save_noise)
             else:
-                x_gt, mask, premask, foreground, background, bg_mask = cgn(ys=ys)
-                x_gen = mask * foreground + (1 - mask) * background
+                _, mask, _, foreground, background, _ = cgn(ys=ys)
+                #x_gen = mask * foreground + (1 - mask) * background
+
+                # Use Poisson blending
+                input_img_source = np.clip(255*foreground.squeeze(0).numpy().transpose(1,2,0), 0, 255).astype(np.uint8)
+                input_img_target = np.clip(255*background.squeeze(0).numpy().transpose(1,2,0), 0, 255).astype(np.uint8)
+                input_img_mask = mask.squeeze(0).numpy().transpose(1,2,0).astype(np.uint8)
+                img_out = poissonSeamlessCloning(
+                    img_source=input_img_source,
+                    img_target=input_img_target,
+                    src_mask=input_img_mask
+                )
+                x_gen = torch.Tensor(img_out.transpose(2,0,1)).unsqueeze(0)/255
 
                 mean_mask = str(mask.mean().item())
                 mean_masks.append(mean_mask)
