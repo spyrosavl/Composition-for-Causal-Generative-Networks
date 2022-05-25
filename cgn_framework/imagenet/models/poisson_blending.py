@@ -5,11 +5,24 @@ import numpy as np
 import scipy.sparse
 from scipy.sparse import linalg
 import pyamg
+import torch
 
 # pre-process the mask array so that uint64 types from opencv.imread can be adapted
+# def prepare_mask(mask):
+#     if type(mask[0][0]) is np.ndarray:
+#         result = np.ndarray((mask.shape[0], mask.shape[1]), dtype=np.uint8)
+#         for i in range(mask.shape[0]):
+#             for j in range(mask.shape[1]):
+#                 if sum(mask[i][j]) > 0:
+#                     result[i][j] = 1
+#                 else:
+#                     result[i][j] = 0
+#         mask = result
+#     return mask
+
 def prepare_mask(mask):
-    if type(mask[0][0]) is np.ndarray:
-        result = np.ndarray((mask.shape[0], mask.shape[1]), dtype=np.uint8)
+    if type(mask[0][0]) is torch.tensor:
+        result = torch.tensor((mask.shape[0], mask.shape[1]), dtype=torch.uint8)
         for i in range(mask.shape[0]):
             for j in range(mask.shape[1]):
                 if sum(mask[i][j]) > 0:
@@ -19,15 +32,24 @@ def prepare_mask(mask):
         mask = result
     return mask
 
+def normalize(tensor):
+    return (tensor + tensor.min().abs()) / (tensor.max() - tensor.min())
 
 def poissonSeamlessCloning(img_source, img_target, src_mask, offset=(0, 0)): 
     assert img_source.shape == img_target.shape
     assert img_source.ndim == 3 and img_target.ndim == 3 and src_mask.ndim == 3
     assert img_source.shape[2] == img_target.shape[2] and img_source.shape[2] == 3
-    assert src_mask.dtype == np.uint8 and img_source.dtype == np.uint8 and img_target.dtype == np.uint8
+    assert src_mask.dtype == torch.uint8 and img_source.dtype == torch.float32 and img_target.dtype == torch.float32
     assert src_mask.all() >= 0 and src_mask.all() <= 1
-    assert img_source.max() <= 255 and img_source.min() >= 0
-    assert img_target.max() <= 255 and img_target.min() >= 0
+
+    # img_source = torch.clip(255*img_source, min=0, max=255).numpy().astype(np.uint8)
+    # img_target = torch.clip(255*img_target, min=0, max=255).numpy().astype(np.uint8)
+    img_source = img_source#numpy().astype(np.float32)
+    img_target = img_target#.numpy().astype(np.float32)
+    src_mask = src_mask#.numpy()
+
+    # assert img_source.max() <= 255 and img_source.min() >= 0
+    # assert img_target.max() <= 255 and img_target.min() >= 0
 
     # compute regions to be blended
     region_source = (max(-offset[0], 0), max(-offset[1], 0),
@@ -67,7 +89,7 @@ def poissonSeamlessCloning(img_source, img_target, src_mask, offset=(0, 0)):
     # create poisson matrix for b
     p_ = pyamg.gallery.poisson(src_mask.shape)
 
-    output = img_target.copy()
+    output = img_target.clone()
 
     # for each layer (ex. RGB)
     for num_layer in range(img_target.shape[2]):
@@ -87,12 +109,14 @@ def poissonSeamlessCloning(img_source, img_target, src_mask, offset=(0, 0)):
 
         # solve Ax = b
         #x = pyamg.solve(a_, b, verb=False, tol=1e-10)
-        x = linalg.spsolve(a_, b)
+        x = torch.tensor(linalg.spsolve(a_, b))
         # assign x to target image
-        x = np.reshape(x, region_size)
-        x[x > 255] = 255
-        x[x < 0] = 0
-        x = np.array(x, img_target.dtype)
+        # x = np.reshape(x, region_size)
+        # x = np.clip(x, -1, 1)
+        # x = np.array(x, img_target.dtype)
+        x = torch.reshape(x, region_size)
+        x = torch.clip(x, -1, 1)
+        x = x.to(img_target.dtype)
         output[region_target[0]:region_target[2], region_target[1]:region_target[3], num_layer] = x
 
     return output
