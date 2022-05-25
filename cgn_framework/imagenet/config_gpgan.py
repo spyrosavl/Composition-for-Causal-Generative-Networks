@@ -34,6 +34,7 @@ __C.LAMBDA.L2 = 0.99
 # Learning Rates
 __C.LR = CN()
 __C.LR.BGAN = 1e-4
+__C.LR.DISC = 1e-4
 
 def get_cfg_gp_gan_defaults():
     return __C.clone()

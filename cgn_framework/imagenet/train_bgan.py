@@ -105,8 +105,8 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
     # Training loop
     blend_gan.train()
     L_l2, L_adv = losses
-    loss_per_epoch = {'blend_gan': [0,1, 1.22424],
-                    'discriminator': [0,2]}  # recording losses to plot later
+    loss_per_epoch = {'blend_gan': [],
+                    'discriminator': []}  # recording losses to plot later
 
     save_samples = save_sample_single if cfg.LOG.SAVE_SINGLES else save_sample_sheet
 
@@ -120,7 +120,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
         # generate x_gt (from cGAN)
         x_gt, mask, premask, foreground, background, background_mask = cgn()
 
-        # generate x (copy_paste_compose)
+        # generate x (copy + paste composition)
         x = mask * foreground + (1 - mask) * background
 
         # get the low resolution, well-blended, semantic & colour accurate output x_l
@@ -130,10 +130,11 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
         valid = torch.ones(x_gt.size(0),).to(device)  # generate labels of length batch_size
         fake = torch.zeros(x_gt.size(0),).to(device) 
 
+        validity = discriminator(x_l)
         # calculate losses
         losses_g = {} 
         losses_g['L_l2'] = L_l2(x_l, x_gt)
-        # losses_g['L_adv'] = L_adv()
+        losses_g['L_adv'] = L_adv(validity, valid)
         # print(f"LOSSES in epi: {ep}", losses_g)
 
         loss_g = sum(losses_g.values())
@@ -143,11 +144,27 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
         # record average loss per batch
         loss_per_epoch['blend_gan'].append(int((loss_g/cfg.TRAIN.BATCH_ACC).item()))
         
-
-        # pass inputs into discriminator ToDo: which model?
         """ Training the discriminator """ 
-        # TODO
+        opts.zero_grad(['discriminator'])
 
+        #Discriminate real and fake
+        validity_real = discriminator(x_gt)
+        validity_fake = discriminator(x_l.detach())
+
+        # Losses
+        losses_d = {}
+        losses_d['real'] = L_adv(validity_real, valid)
+        losses_d['fake'] = L_adv(validity_fake, fake)
+        loss_d = sum(losses_d.values()) / 2
+        # print(f"DISC LOSSES in epi: {ep}", losses_d)
+
+        # Backprop and step
+        loss_d.backward()
+        opts.step(['discriminator'], False)
+
+        # record average loss per batch for the discriminator
+        loss_per_epoch['discriminator'].append(int((loss_g/cfg.TRAIN.BATCH_ACC).item()))
+        
 
         # Saving
         if not i % cfg.LOG.SAVE_ITER:
@@ -176,8 +193,8 @@ def main(cfg):
 
     # init model
     blend_gan = BlendGAN()
-    # ToDo: init discriminator
-    discriminator = Encoder()
+    # init discriminator
+    discriminator = Encoder(as_discriminator=True)
 
     # init cgn
     cgn = CGN(
@@ -195,17 +212,16 @@ def main(cfg):
     # optimizers
     opts = Optimizers()
     opts.set('blend_gan', blend_gan, lr=cfg.LR.BGAN)
-    # ToDo:  opts.set('discriminator', discriminator, ...)
-    # push to device and train
+    opts.set('discriminator', discriminator, lr=cfg.LR.DISC)
     
-    blend_gan = blend_gan.to(device)
-    #discriminator = discriminator.to(device)
-
     #losses
     L_l2 = ReconstructionLoss(mode='l2', loss_weight=cfg.LAMBDA.L2)
     L_adv = torch.nn.MSELoss()  # ToDo: add correct loss
     losses = (L_l2, L_adv)
-    # ToDo: L_adv
+
+    # push to device and train
+    blend_gan = blend_gan.to(device)
+    discriminator = discriminator.to(device)
 
     fit(cfg, blend_gan, discriminator, cgn, opts, losses)  # train models
 
