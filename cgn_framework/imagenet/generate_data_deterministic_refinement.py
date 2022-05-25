@@ -206,9 +206,9 @@ def main(args):
                 #x_gen = mask * foreground + (1 - mask) * background
 
                 #Use Poisson blending
-                input_img_source = np.clip(255*foreground.squeeze(0).numpy().transpose(1,2,0), 0, 255).astype(np.uint8)
-                input_img_target = np.clip(255*background.squeeze(0).numpy().transpose(1,2,0), 0, 255).astype(np.uint8)
-                input_img_mask = mask.squeeze(0).numpy().transpose(1,2,0)
+                input_img_source = np.clip(255*foreground.cpu().squeeze(0).numpy().transpose(1,2,0), 0, 255).astype(np.uint8)
+                input_img_target = np.clip(255*background.cpu().squeeze(0).numpy().transpose(1,2,0), 0, 255).astype(np.uint8)
+                input_img_mask = mask.cpu().squeeze(0).numpy().transpose(1,2,0)
                 input_img_mask = (input_img_mask > 0.5).astype(np.uint8)
 
                 img_out = poissonSeamlessCloning(
@@ -224,9 +224,9 @@ def main(args):
                 # save image
                 # to save other outputs, simply add a line in the same format, e.g.:
                 # save_image(premask, join(ims_path, im_name + '_premask.jpg'))
-                save_image(background, join(ims_path, im_name + '_x_background.jpg'))
-                save_image(foreground, join(ims_path, im_name + '_x_foreground.jpg'))
-                save_image(mask, join(ims_path, im_name + '_x_mask.jpg'))
+                #save_image(background, join(ims_path, im_name + '_x_background.jpg'))
+                #save_image(foreground, join(ims_path, im_name + '_x_foreground.jpg'))
+                #save_image(mask, join(ims_path, im_name + '_x_mask.jpg'))
                 save_image(x_gen, join(ims_path, im_name + '_x_gen.jpg'))
 
             # save labels

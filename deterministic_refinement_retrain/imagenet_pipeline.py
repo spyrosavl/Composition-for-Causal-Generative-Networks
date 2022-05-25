@@ -165,7 +165,7 @@ if __name__ == "__main__":
                                             generate_cf_data=True, 
                                             disp_epoch=15, #TODO change number of epochs
                                             ignore_cache=True,
-                                            cf_no_train=20000,
+                                            cf_no_train=25000,
                                             cf_no_val=3000) #TODO Change number of CF here
 
     # construct Table 3 of the paper
