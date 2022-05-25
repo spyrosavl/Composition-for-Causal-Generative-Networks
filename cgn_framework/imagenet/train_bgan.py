@@ -96,11 +96,19 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
     weights_path = join(model_path, 'weights')
     sample_path = join(model_path, 'samples')
     loss_path = join(model_path, 'losses')
+    
+    if cfg.BGAN_WEIGHTS_PATH:
+        "Loaded Blending GAN's weights"
+        start_ep = int(pathlib.Path(cfg.WEIGHTS_PATH).stem[3:])
+        ep_range = (start_ep, start_ep + episodes)
+    else:
+        ep_range = (0, episodes)
 
     pathlib.Path(weights_path).mkdir(parents=True, exist_ok=True)
     pathlib.Path(sample_path).mkdir(parents=True, exist_ok=True)
     pathlib.Path(loss_path).mkdir(parents=True, exist_ok=True)
-    ep_range = (0, episodes)
+
+ 
 
     # Training loop
     blend_gan.train()
@@ -163,7 +171,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
         opts.step(['discriminator'], False)
 
         # record average loss per batch for the discriminator
-        loss_per_epoch['discriminator'].append(loss_g.detach().item())
+        loss_per_epoch['discriminator'].append(loss_d.detach().item())
         
 
         # Saving
@@ -208,12 +216,21 @@ def main(cfg):
     discriminator.to(device)
     cgn.to(device)
 
+    if cfg.BGAN_WEIGHTS_PATH:
+        print("Loading BGAN weights")
+        weights = torch.load(cfg.BGAN_WEIGHTS_PATH, map_location=torch.device(device))
+        weights = {k.replace('module.', ''): v for k, v in weights.items()}
+        blend_gan.load_state_dict(weights)
     if cfg.CGN_WEIGHTS_PATH:
         # print(f"Loading CGN weights from {cfg.CGN_WEIGHTS_PATH}")
         weights = torch.load(cfg.CGN_WEIGHTS_PATH, map_location=torch.device(device))
         weights = {k.replace('module.', ''): v for k, v in weights.items()}
         cgn.load_state_dict(weights)
     
+    blend_gan.to(device)
+    discriminator.to(device)
+    cgn.to(device)
+
     # optimizers
     opts = Optimizers()
     opts.set('blend_gan', blend_gan, lr=cfg.LR.BGAN)
