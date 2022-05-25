@@ -163,10 +163,10 @@ def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=
 if __name__ == "__main__":
     metrics_clf, df_ood = run_experiments(  seed=0, 
                                             generate_cf_data=True, 
-                                            disp_epoch=1, #TODO change number of epochs
+                                            disp_epoch=15, #TODO change number of epochs
                                             ignore_cache=True,
-                                            cf_no_train=5,
-                                            cf_no_val=5) #TODO Change number of CF here
+                                            cf_no_train=20000,
+                                            cf_no_val=3000) #TODO Change number of CF here
 
     # construct Table 3 of the paper
     heads = ["shape", "texture", "bg"]
