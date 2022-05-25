@@ -51,7 +51,7 @@ class Encoder(nn.Module):
     def forward(self, input):
         x = self.model(input)
         if self.discriminator:
-            x = self.clf(x)
+            x = self.clf(x).squeeze(1)  # returns tensor of size [1]
         else:
             x = self.output(x)
         return x

@@ -73,10 +73,10 @@ def fit(cfg, cgn, discriminator, dataloader, opts, losses, device, use_time_in_f
             mask, foreground, background = cgn(y_gen)
             x_gen = mask * foreground + (1 - mask) * background  # composition
             # Calc Losses
-            validity = discriminator(x_gen, y_gen)  # binary vector of len=batch_size (1=fake/generated)
+            validity = discriminator(x_gen, y_gen)  # binary vector of len=batch_size (1=real/cgan generated)
 
             losses_g = {}
-            losses_g['adv'] = L_adv(validity, valid)  # mse loss
+            losses_g['adv'] = L_adv(validity, valid)  # mse loss (reverse)
             losses_g['binary'] = L_binary(mask)
             losses_g['perc'] = L_perc(x_gen, x_gt)
             losses_g['edge'] = L_edge(mask)
@@ -94,7 +94,7 @@ def fit(cfg, cgn, discriminator, dataloader, opts, losses, device, use_time_in_f
             # Discriminate real and fake
             validity_real = discriminator(x_gt, y_gt)
             validity_fake = discriminator(x_gen.detach(), y_gen)
-
+            
             # Losses
             losses_d = {}
             losses_d['real'] = L_adv(validity_real, valid)
