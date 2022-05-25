@@ -117,22 +117,22 @@ def fit(cfg, cgn, opts, losses):
     pbar = tqdm(range(*ep_range))
     for i, ep in enumerate(pbar):
         x_gt, mask, premask, foreground, background, background_mask = cgn()
-        x_gen = mask * foreground + (1 - mask) * background
+        #x_gen = mask * foreground + (1 - mask) * background
         
-        print(f"mask: {mask.min()} {mask.max()}, foreground: {foreground.min()} {foreground.max()}, background: {background.min()} {background.max()}")
-        print(f"x_gen: {x_gen.min()} {x_gen.max()}")
-        #Poisson blending
-        # input_img_source = np.clip(255*foreground.squeeze(0).transpose(1,2,0), 0, 255)
-        # input_img_target = np.clip(255*background.squeeze(0).transpose(1,2,0), 0, 255)
-        # input_img_mask = mask.squeeze(0).transpose(1,2,0)
-        # input_img_mask = (input_img_mask > 0.5).astype(torch.uint8)
+        #Use Poisson blending
+        input_img_source = foreground.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
+        input_img_target = background.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
+        input_img_mask = mask.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
+        input_img_mask = (input_img_mask > 0.5).to(torch.uint8)
 
-        # img_out = poissonSeamlessCloning(
-        #     img_source=input_img_source,
-        #     img_target=input_img_target,
-        #     src_mask=input_img_mask
-        # )
-        # x_gen = torch.Tensor(img_out.transpose(2,0,1)).unsqueeze(0)/255
+        img_out = poissonSeamlessCloning(
+            img_source=input_img_source,
+            img_target=input_img_target,
+            src_mask=input_img_mask
+        )
+
+        x_gen = img_out.transpose(1,2).transpose(0,1)
+        x_gen = x_gen.unsqueeze(0)
 
         # Losses
         losses_g = {}
