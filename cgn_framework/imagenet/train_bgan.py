@@ -96,11 +96,19 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
     weights_path = join(model_path, 'weights')
     sample_path = join(model_path, 'samples')
     loss_path = join(model_path, 'losses')
+    
+    if cfg.BGAN_WEIGHTS_PATH:
+        "Loaded Blending GAN's weights"
+        start_ep = int(pathlib.Path(cfg.WEIGHTS_PATH).stem[3:])
+        ep_range = (start_ep, start_ep + episodes)
+    else:
+        ep_range = (0, episodes)
 
     pathlib.Path(weights_path).mkdir(parents=True, exist_ok=True)
     pathlib.Path(sample_path).mkdir(parents=True, exist_ok=True)
     pathlib.Path(loss_path).mkdir(parents=True, exist_ok=True)
-    ep_range = (0, episodes)
+
+ 
 
     # Training loop
     blend_gan.train()
@@ -142,7 +150,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
         opts.step(['blend_gan'], False)
 
         # record average loss per batch
-        loss_per_epoch['blend_gan'].append(int((loss_g/cfg.TRAIN.BATCH_ACC).item()))
+        loss_per_epoch['blend_gan'].append(loss_g.detach().item())
         
         """ Training the discriminator """ 
         opts.zero_grad(['discriminator'])
@@ -163,7 +171,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
         opts.step(['discriminator'], False)
 
         # record average loss per batch for the discriminator
-        loss_per_epoch['discriminator'].append(int((loss_g/cfg.TRAIN.BATCH_ACC).item()))
+        loss_per_epoch['discriminator'].append(loss_d.detach().item())
         
 
         # Saving
@@ -182,9 +190,10 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
     if cfg.LOG.LOSSES: # TODO: NOT WORKING
         path = join(loss_path, 'losses.csv')
         with open(path, 'w') as csvfile:
-            writer = csv.writer(csvfile, delimiter=';')
-            writer.writerow(loss_per_epoch.keys())
-            writer.writerows(zip(*loss_per_epoch.values()))
+            writer = csv.writer(csvfile, delimiter=',')
+            writer.writerow(['blend_gan', *loss_per_epoch['blend_gan']])
+            writer.writerow(['discriminator', *loss_per_epoch['discriminator']])
+
 
     
 def main(cfg):
@@ -203,12 +212,25 @@ def main(cfg):
         pretrained=True,
     )
 
+    blend_gan.to(device)
+    discriminator.to(device)
+    cgn.to(device)
+
+    if cfg.BGAN_WEIGHTS_PATH:
+        print("Loading BGAN weights")
+        weights = torch.load(cfg.BGAN_WEIGHTS_PATH, map_location=torch.device(device))
+        weights = {k.replace('module.', ''): v for k, v in weights.items()}
+        blend_gan.load_state_dict(weights)
     if cfg.CGN_WEIGHTS_PATH:
         # print(f"Loading CGN weights from {cfg.CGN_WEIGHTS_PATH}")
         weights = torch.load(cfg.CGN_WEIGHTS_PATH, map_location=torch.device(device))
         weights = {k.replace('module.', ''): v for k, v in weights.items()}
         cgn.load_state_dict(weights)
     
+    blend_gan.to(device)
+    discriminator.to(device)
+    cgn.to(device)
+
     # optimizers
     opts = Optimizers()
     opts.set('blend_gan', blend_gan, lr=cfg.LR.BGAN)
@@ -223,7 +245,7 @@ def main(cfg):
     blend_gan = blend_gan.to(device)
     discriminator = discriminator.to(device)
 
-    fit(cfg, blend_gan, discriminator, cgn, opts, losses)  # train models
+    fit(cfg, blend_gan, discriminator, cgn, opts, losses, device)  # train models
 
 
   # ToDo: check if correct
@@ -252,11 +274,11 @@ if __name__ == "__main__":
                         help='Weights and samples will be saved under experiments/model_name')
     parser.add_argument('--weights_path', default='imagenet/weights/cgn.pth',
                         help='provide path to continue training')
-    parser.add_argument('--epochs', type=int, default=300,
+    parser.add_argument('--epochs', type=int, default=500,
                         help="We don't do dataloading, hence, one episode = one gradient update.")
-    parser.add_argument('--batch_sz', type=int, default=4000,
+    parser.add_argument('--batch_sz', type=int, default=1,
                         help='Batch size, use in conjunciton with batch_acc')
-    parser.add_argument('--batch_acc', type=int, default=4000,
+    parser.add_argument('--batch_acc', type=int, default=2,
                         help='pseudo_batch_size = batch_acc*batch size')
 
     # ToDo: add more
