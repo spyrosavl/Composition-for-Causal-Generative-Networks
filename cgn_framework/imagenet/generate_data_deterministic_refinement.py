@@ -224,9 +224,9 @@ def main(args):
                 # save image
                 # to save other outputs, simply add a line in the same format, e.g.:
                 # save_image(premask, join(ims_path, im_name + '_premask.jpg'))
-                save_image(background, join(ims_path, im_name + '_x_background.jpg'))
-                save_image(foreground, join(ims_path, im_name + '_x_foreground.jpg'))
-                save_image(mask, join(ims_path, im_name + '_x_mask.jpg'))
+                #save_image(background, join(ims_path, im_name + '_x_background.jpg'))
+                #save_image(foreground, join(ims_path, im_name + '_x_foreground.jpg'))
+                #save_image(mask, join(ims_path, im_name + '_x_mask.jpg'))
                 save_image(x_gen, join(ims_path, im_name + '_x_gen.jpg'))
 
             # save labels
