@@ -113,7 +113,7 @@ class CGN():
 
         batch_imgs = torch.stack([shape_img, fg_img, bg_img]).to(self.device)
 
-        masks = self.us2net(batch_imgs).squeeze(1).unsqueeze(3).detach()
+        masks = self.us2net(batch_imgs).squeeze(1).unsqueeze(3).detach().cpu()
 
         if debug:
             #Plot masks
@@ -123,15 +123,14 @@ class CGN():
             ax[2].imshow(masks[2].cpu().numpy())
             plt.show()
 
-        shape_mask = (masks[0] > threshold).float()
-        fg_mask = (masks[1] > threshold).float()
-        bg_mask = (masks[2] > threshold).float()
-
+        shape_mask = masks[0]
+        fg_mask = masks[1]
+        bg_mask = masks[2]
 
         #Inpaint bg (fill bg holes)
         bg_img_cropped = np.clip((1-bg_mask) * bg_img.transpose(0,1).transpose(1,2), 0, 1)
         bg_img_cv = (bg_img_cropped.numpy()*255).astype(np.uint8)
-        bg_img_inpainted = cv.inpaint(bg_img_cv, bg_mask.numpy().astype(np.uint8), 5, cv.INPAINT_NS)/255
+        bg_img_inpainted = cv.inpaint(bg_img_cv, (bg_mask > threshold).float().numpy().astype(np.uint8), 5, cv.INPAINT_NS)/255
 
         texture = get_sampled_patches((1-fg_mask).unsqueeze(0).transpose(1,3), fg_img.unsqueeze(0))
 
