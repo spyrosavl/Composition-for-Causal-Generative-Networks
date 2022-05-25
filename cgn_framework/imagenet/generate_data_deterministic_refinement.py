@@ -19,7 +19,7 @@ from torchvision.utils import make_grid
 import repackage
 repackage.up()
 
-from imagenet.models.fake_cgn import CGN
+from imagenet.models.cgn import CGN
 from imagenet.models.poisson_blending import poissonSeamlessCloning
 
 def save_image(im, path):
@@ -177,7 +177,7 @@ def main(args):
     # path setup
     time_str = datetime.now().strftime("%Y_%m_%d_%H_") if not args.ignore_time_in_filename else ""
     trunc_str = f"{args.run_name}_trunc_{args.truncation}"
-    data_path = join('imagenet', 'data', 'cgn', 'fake_cgn', time_str + trunc_str) #TODO change this
+    data_path = join('imagenet', 'data', 'cgn', 'deterministic_refinement', time_str + trunc_str) #TODO change this
     ims_path = join(data_path, 'ims')
     pathlib.Path(ims_path).mkdir(parents=True, exist_ok=True)
     print(f"Saving data to {data_path}")
@@ -205,11 +205,11 @@ def main(args):
                 _, mask, _, foreground, background, _ = cgn(ys=ys)
                 #x_gen = mask * foreground + (1 - mask) * background
 
-                # Use Poisson blending
+                #Use Poisson blending
                 input_img_source = np.clip(255*foreground.squeeze(0).numpy().transpose(1,2,0), 0, 255).astype(np.uint8)
                 input_img_target = np.clip(255*background.squeeze(0).numpy().transpose(1,2,0), 0, 255).astype(np.uint8)
                 input_img_mask = mask.squeeze(0).numpy().transpose(1,2,0)
-                input_img_mask = (input_img_mask > 0.2).astype(np.uint8)
+                input_img_mask = (input_img_mask > 0.5).astype(np.uint8)
 
                 img_out = poissonSeamlessCloning(
                     img_source=input_img_source,
@@ -224,6 +224,9 @@ def main(args):
                 # save image
                 # to save other outputs, simply add a line in the same format, e.g.:
                 # save_image(premask, join(ims_path, im_name + '_premask.jpg'))
+                save_image(background, join(ims_path, im_name + '_x_background.jpg'))
+                save_image(foreground, join(ims_path, im_name + '_x_foreground.jpg'))
+                save_image(mask, join(ims_path, im_name + '_x_mask.jpg'))
                 save_image(x_gen, join(ims_path, im_name + '_x_gen.jpg'))
 
             # save labels

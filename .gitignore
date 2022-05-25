@@ -167,3 +167,5 @@ u2net_cropping/imagenet/data/*
 cgn_framework/imagenet/experiments/*
 u2net_cropping/imagenet/experiments/*
 cgn_framework/imagenet/experiments/
+deterministic_refinement/imagenet/*
+deterministic_refinement/experiments/*

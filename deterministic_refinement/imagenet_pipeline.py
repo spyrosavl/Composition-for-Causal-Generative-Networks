@@ -32,7 +32,7 @@ def generate_counterfactual_dataset(
     """Generates CF dataset for ImageNet (size of IN-mini)"""
     seed_everything(seed)
 
-    script_path = join(REPO_PATH, "cgn_framework/imagenet/generate_data_fake_cgn.py") #TODO Change this one
+    script_path = join(REPO_PATH, "cgn_framework/imagenet/generate_data_deterministic_refinement.py") #TODO Change this one
 
     # generate train and val dataset
     for mode in modes:        
@@ -66,7 +66,7 @@ def train_classifier(args: dict = dict(lr=0.001), prefix="in-mini", seed=0, disp
     run_name = f"{prefix}-classifier"
     expt_dir = join(REPO_PATH, "cgn_framework/imagenet/experiments", f"classifier__{run_name}")
     epoch_metrics_path = join(expt_dir, f"epochwise_metrics/epoch_{disp_epoch}.pt")
-    cf_data_path = f"imagenet/data/cgn/fake_cgn/{prefix}" #TODO: Change this
+    cf_data_path = f"imagenet/data/cgn/deterministic_refinement/{prefix}" #TODO change this
     if not exists(epoch_metrics_path) or ignore_cache:
         
         print("::::: Training classifier :::::")
