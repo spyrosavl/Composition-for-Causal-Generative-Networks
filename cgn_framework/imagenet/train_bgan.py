@@ -142,7 +142,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
         opts.step(['blend_gan'], False)
 
         # record average loss per batch
-        loss_per_epoch['blend_gan'].append(int((loss_g/cfg.TRAIN.BATCH_ACC).item()))
+        loss_per_epoch['blend_gan'].append(loss_g.detach().item())
         
         """ Training the discriminator """ 
         opts.zero_grad(['discriminator'])
@@ -163,7 +163,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
         opts.step(['discriminator'], False)
 
         # record average loss per batch for the discriminator
-        loss_per_epoch['discriminator'].append(int((loss_g/cfg.TRAIN.BATCH_ACC).item()))
+        loss_per_epoch['discriminator'].append(loss_g.detach().item())
         
 
         # Saving
@@ -182,9 +182,10 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
     if cfg.LOG.LOSSES: # TODO: NOT WORKING
         path = join(loss_path, 'losses.csv')
         with open(path, 'w') as csvfile:
-            writer = csv.writer(csvfile, delimiter=';')
-            writer.writerow(loss_per_epoch.keys())
-            writer.writerows(zip(*loss_per_epoch.values()))
+            writer = csv.writer(csvfile, delimiter=',')
+            writer.writerow(['blend_gan', *loss_per_epoch['blend_gan']])
+            writer.writerow(['discriminator', *loss_per_epoch['discriminator']])
+
 
     
 def main(cfg):
@@ -202,6 +203,10 @@ def main(cfg):
         truncation=cfg.MODEL.TRUNCATION,
         pretrained=True,
     )
+
+    blend_gan.to(device)
+    discriminator.to(device)
+    cgn.to(device)
 
     if cfg.CGN_WEIGHTS_PATH:
         # print(f"Loading CGN weights from {cfg.CGN_WEIGHTS_PATH}")
@@ -223,7 +228,7 @@ def main(cfg):
     blend_gan = blend_gan.to(device)
     discriminator = discriminator.to(device)
 
-    fit(cfg, blend_gan, discriminator, cgn, opts, losses)  # train models
+    fit(cfg, blend_gan, discriminator, cgn, opts, losses, device)  # train models
 
 
   # ToDo: check if correct
@@ -252,11 +257,11 @@ if __name__ == "__main__":
                         help='Weights and samples will be saved under experiments/model_name')
     parser.add_argument('--weights_path', default='imagenet/weights/cgn.pth',
                         help='provide path to continue training')
-    parser.add_argument('--epochs', type=int, default=300,
+    parser.add_argument('--epochs', type=int, default=50,
                         help="We don't do dataloading, hence, one episode = one gradient update.")
-    parser.add_argument('--batch_sz', type=int, default=4000,
+    parser.add_argument('--batch_sz', type=int, default=256,
                         help='Batch size, use in conjunciton with batch_acc')
-    parser.add_argument('--batch_acc', type=int, default=4000,
+    parser.add_argument('--batch_acc', type=int, default=8,
                         help='pseudo_batch_size = batch_acc*batch size')
 
     # ToDo: add more

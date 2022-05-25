@@ -5,7 +5,7 @@
 #SBATCH --job-name=IN-mini
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
-#SBATCH --time=15:00:00
+#SBATCH --time=00:30:00  #TODO
 #SBATCH --mem=32000M
 #SBATCH --output=slurm_output_%A.out
 
@@ -15,8 +15,10 @@ module load Anaconda3/2021.05
 
 # Activate your environment
 source activate cgn-gpu
+# conda deactivate
+# source activate cgn-gpu
 
 # Run your code
 ## runs all experiments to reproduce Table 3 and 4 in the paper
-python train_bgan.py
+python imagenet/train_bgan.py
 
