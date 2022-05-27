@@ -25,7 +25,6 @@ from imagenet.models.gp_gan import Encoder
 from shared.losses import *
 from utils import Optimizers
 
-
 def save_sample_sheet(blend_gan, cgn, sample_path, ep_str):
     
     blend_gan.eval()
@@ -99,7 +98,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
     
     if cfg.BGAN_WEIGHTS_PATH:
         "Loaded Blending GAN's weights"
-        start_ep = int(pathlib.Path(cfg.WEIGHTS_PATH).stem[3:])
+        start_ep = int(pathlib.Path(cfg.BGAN_WEIGHTS_PATH).stem[3:])
         ep_range = (start_ep, start_ep + episodes)
     else:
         ep_range = (0, episodes)
@@ -142,7 +141,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
         # calculate losses
         losses_g = {} 
         losses_g['L_l2'] = L_l2(x_l, x_gt)
-        losses_g['L_adv'] = L_adv(validity, valid)
+        losses_g['L_adv'] = L_adv(validity, valid) * cfg.LAMBDA.ADV
         # print(f"LOSSES in epi: {ep}", losses_g)
 
         loss_g = sum(losses_g.values())
@@ -238,7 +237,7 @@ def main(cfg):
     
     #losses
     L_l2 = ReconstructionLoss(mode='l2', loss_weight=cfg.LAMBDA.L2)
-    L_adv = torch.nn.MSELoss()  # ToDo: add correct loss
+    L_adv = torch.nn.MSELoss()   # ToDo: add correct loss
     losses = (L_l2, L_adv)
 
     # push to device and train
@@ -274,7 +273,7 @@ if __name__ == "__main__":
                         help='Weights and samples will be saved under experiments/model_name')
     parser.add_argument('--weights_path', default='imagenet/weights/cgn.pth',
                         help='provide path to continue training')
-    parser.add_argument('--epochs', type=int, default=500,
+    parser.add_argument('--epochs', type=int, default=5000,
                         help="We don't do dataloading, hence, one episode = one gradient update.")
     parser.add_argument('--batch_sz', type=int, default=1,
                         help='Batch size, use in conjunciton with batch_acc')

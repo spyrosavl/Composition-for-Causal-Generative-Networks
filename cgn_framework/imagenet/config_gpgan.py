@@ -7,7 +7,7 @@ cfg = __C
 # General
 __C.MODEL_NAME = 'tmp'
 __C.CGN_WEIGHTS_PATH = ''
-__C.BGAN_WEIGHTS_PATH = ''
+__C.BGAN_WEIGHTS_PATH = 'imagenet/experiments/bgn_2022_05_25_20_45_tmp/weights/ep_0023400.pth'
 
 # Logging
 __C.LOG = CN()
@@ -30,6 +30,7 @@ __C.TRAIN.BATCH_ACC = 8
 # Loss Weigths
 __C.LAMBDA = CN()
 __C.LAMBDA.L2 = 0.99
+__C.LAMBDA.ADV = 0.11
 
 # Learning Rates
 __C.LR = CN()
