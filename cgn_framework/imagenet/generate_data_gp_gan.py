@@ -1,4 +1,7 @@
 """ Running the G-P GAN pipiline """
 
-from imagenet.models import BlendGan
+from imagenet.models import BlendGan, BlendNet
+
+
+
 

@@ -44,7 +44,7 @@ class Encoder(nn.Module):
 
         self.clf = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(131072, 1)
+            nn.Linear(1, 892)
         )
 
         self.model.apply(weights_init)
@@ -356,31 +356,12 @@ def gp_gan(foreground, background, mask, xl, color_weight=1, image_size=256, sig
     
     return gan_im
 
-#### testing
-import random
-import numpy as np
-
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-
-import torchvision
-import matplotlib.pyplot as plt
-
-dtype = torch.double
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-
 
 # example python implementation: https://github.com/msinghal34/Image-Blending-using-GP-GANs/blob/master/src/PyramidBlending.py
-
-class Net(nn.Module):
+class BlendNet(nn.Module):
 
     def __init__(self):
-        super(Net, self).__init__()
+        super(BlendNet, self).__init__()
         # torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True)
         # Encoder
         self.batch_norm = nn.BatchNorm2d(3)
@@ -413,20 +394,20 @@ class Net(nn.Module):
         
 
     def forward(self, x):
-        print("INPUT SIZE", x.size())
-        print("type: ", x.dtype)
+        # print("INPUT SIZE", x.size())
+        # print("type: ", x.dtype)
         x1 = F.relu(self.conv1(x))
         x2 = F.relu(self.conv2(x1))
         x3 = F.relu(self.conv3(x2)) 
         x4 = F.relu(self.conv4(x3))
         x5 = F.relu(self.conv5(x4))
-        print("LATENT VECTOR SIZE", x5.size())
+        # print("LATENT VECTOR SIZE", x5.size())
         x6 = F.relu(self.dconv5(x5))
         x7 = F.relu(self.dconv4(x6))
         x8 = F.relu(self.dconv3(x7))
         x9 = F.relu(self.dconv2(x8))
         x10 = F.relu(self.dconv1(x9))
-        print("OUTPUT SIZE", x.size())
+        # print("OUTPUT SIZE", x.size())
         return x10
 
     def num_flat_features(self, x):

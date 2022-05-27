@@ -6,12 +6,12 @@ cfg = __C
 
 # General
 __C.MODEL_NAME = 'tmp'
-__C.CGN_WEIGHTS_PATH = ''
+__C.CGN_WEIGHTS_PATH = 'imagenet/weights/blend_net_weights'
 __C.BGAN_WEIGHTS_PATH = ''
 
 # Logging
 __C.LOG = CN()
-__C.LOG.SAVE_ITER = 100
+__C.LOG.SAVE_ITER = 500
 __C.LOG.SAMPLED_FIXED_NOISE = False
 __C.LOG.SAVE_SINGLES = False
 __C.LOG.LOSSES = True
@@ -33,7 +33,7 @@ __C.LAMBDA.L2 = 0.99
 
 # Learning Rates
 __C.LR = CN()
-__C.LR.BGAN = 1e-4
+__C.LR.BGAN = 2e-3
 __C.LR.DISC = 1e-4
 
 def get_cfg_gp_gan_defaults():
