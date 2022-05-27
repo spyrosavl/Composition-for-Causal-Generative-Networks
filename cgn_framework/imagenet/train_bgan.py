@@ -20,7 +20,7 @@ import repackage
 repackage.up()
 
 from imagenet.config_gpgan import get_cfg_gp_gan_defaults
-from imagenet.models import BlendGAN, CGN
+from imagenet.models import BlendGAN, BlendNet, CGN
 from imagenet.models.gp_gan import Encoder
 from shared.losses import *
 from utils import Optimizers
@@ -37,7 +37,15 @@ def save_sample_sheet(blend_gan, cgn, sample_path, ep_str):
             # inp = (u_fixed.to(dev), y_vec.to(dev), cgn.truncation)
         x_gt, mask, premask, foreground, background, bg_mask = cgn()
         x_gen = mask * foreground + (1 - mask) * background
-        x_l = blend_gan(x_gen)
+        
+        # resize to 64x64
+        x_resz = torchvision.transforms.functional.resize(x_gen, size=(64,64))
+       
+        x_l = blend_gan(x_resz)
+
+        # resize to 256x256
+        x_l = torchvision.transforms.functional.resize(x_l, size=(256,256))
+
         # build class grid
         to_plot = [x_gen, x_l, x_gt]
         grid = make_grid(torch.cat(to_plot).detach().cpu(),
@@ -61,8 +69,9 @@ def save_sample_single(blend_gan, cgn, sample_path, ep_str):
         # generate
         _, mask, _, foreground, background, _ = cgn()
         x = mask * foreground + (1 - mask) * background
-        x_l = blend_gan(x)
-
+        x_resz = torchvision.transforms.functional.resize(x_gen, size=(64,64))
+        x_l = blend_gan(x_resz)
+        x_l = torchvision.transforms.functional.resize(x_l, size=(256,256))
         # save_images # ToDo: consider adding image classes
         path = join(sample_path, f'1_composite_img_x_' + ep_str + '.png')
         torchvision.utils.save_image(x, path, normalize=True)
@@ -107,7 +116,6 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
     pathlib.Path(sample_path).mkdir(parents=True, exist_ok=True)
     pathlib.Path(loss_path).mkdir(parents=True, exist_ok=True)
 
- 
 
     # Training loop
     blend_gan.train()
@@ -130,18 +138,23 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
         # generate x (copy + paste composition)
         x = mask * foreground + (1 - mask) * background
 
+        # downsize the image
+        x_resz = torchvision.transforms.functional.resize(x, size=(64,64))
+        x_gt_rsz = torchvision.transforms.functional.resize(x_gt, size=(64,64))
         # get the low resolution, well-blended, semantic & colour accurate output x_l
-        x_l = blend_gan(x)
+        x_l = blend_gan(x_resz)
         
         # adverserial gts, valid == generated from the blend gan
-        valid = torch.ones(x_gt.size(0),).to(device)  # generate labels of length batch_size
-        fake = torch.zeros(x_gt.size(0),).to(device) 
+        valid = torch.ones(x_gt_rsz.size(0),).to(device)  # generate labels of length batch_size
+        fake = torch.zeros(x_gt_rsz.size(0),).to(device) 
 
         validity = discriminator(x_l)
         # calculate losses
         losses_g = {} 
-        losses_g['L_l2'] = L_l2(x_l, x_gt)
-        losses_g['L_adv'] = L_adv(validity, valid) * cfg.LAMBDA.ADV
+
+        losses_g['L_l2'] = L_l2(x_l, x_gt_rsz)
+        losses_g['L_adv'] = L_adv(validity, valid)
+
         # print(f"LOSSES in epi: {ep}", losses_g)
 
         loss_g = sum(losses_g.values())
@@ -155,7 +168,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
         opts.zero_grad(['discriminator'])
 
         #Discriminate real and fake
-        validity_real = discriminator(x_gt)
+        validity_real = discriminator(x_gt_rsz)
         validity_fake = discriminator(x_l.detach())
 
         # Losses
@@ -200,7 +213,7 @@ def main(cfg):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # init model
-    blend_gan = BlendGAN()
+    blend_gan = BlendNet()
     # init discriminator
     discriminator = Encoder(as_discriminator=True)
 
@@ -218,8 +231,9 @@ def main(cfg):
     if cfg.BGAN_WEIGHTS_PATH:
         print("Loading BGAN weights")
         weights = torch.load(cfg.BGAN_WEIGHTS_PATH, map_location=torch.device(device))
-        weights = {k.replace('module.', ''): v for k, v in weights.items()}
         blend_gan.load_state_dict(weights)
+        # weights = {k.replace('module.', ''): v for k, v in weights.items()}
+        # blend_gan.load_state_dict(weights)
     if cfg.CGN_WEIGHTS_PATH:
         # print(f"Loading CGN weights from {cfg.CGN_WEIGHTS_PATH}")
         weights = torch.load(cfg.CGN_WEIGHTS_PATH, map_location=torch.device(device))

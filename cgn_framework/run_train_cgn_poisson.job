@@ -16,7 +16,4 @@ module load Anaconda3/2021.05
 # Activate your environment
 source activate cgn-gpu
 
-# Run your code
-## runs all experiments to reproduce Table 3 and 4 in the paper
-python imagenet_pipeline.py
-
+python imagenet/train_cgn_poisson.py --model_name cgn_poisson --weights_path imagenet/weights/cgn.pth --batch_sz 1 --batch_acc 1 --episodes 50
