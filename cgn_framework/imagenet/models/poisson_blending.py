@@ -30,13 +30,12 @@ def poissonSeamlessCloning(img_source, img_target, src_mask, offset=(0, 0)):
     assert img_source.shape[2] == img_target.shape[2] and img_source.shape[2] == 3
     assert src_mask.dtype == torch.uint8 and img_source.dtype == torch.float32 and img_target.dtype == torch.float32
     assert src_mask.all() >= 0 and src_mask.all() <= 1
+    assert img_source.all() <= 1 and img_source.all() >= 0
+    assert img_target.all() <= 1 and img_target.all() >= 0
 
-    img_source = img_source.to(torch.float32).numpy().astype(np.float32)
-    img_target = img_target.to(torch.float32).numpy().astype(np.float32)
+    img_source = img_source.numpy().astype(np.float32)
+    img_target = img_target.numpy().astype(np.float32)
     src_mask = src_mask.numpy()
-
-    assert img_source.max() <= 1 and img_source.min() >= -1
-    assert img_target.max() <= 1 and img_target.min() >= -1
 
     # compute regions to be blended
     region_source = (max(-offset[0], 0), max(-offset[1], 0),
@@ -99,8 +98,11 @@ def poissonSeamlessCloning(img_source, img_target, src_mask, offset=(0, 0)):
         x = torch.tensor(linalg.spsolve(a_, b))
         # assign x to target image
         x = np.reshape(x, region_size)
-        x = np.clip(x, -1, 1)
+        x = np.clip(x, 0, 1)
         x = np.array(x, img_target.dtype)
         output[region_target[0]:region_target[2], region_target[1]:region_target[3], num_layer] = x
 
+    output = torch.from_numpy(output)
+    assert output.shape[2] == output.shape[2] and output.shape[2] == 3
+    assert output.dtype == torch.float32
     return output

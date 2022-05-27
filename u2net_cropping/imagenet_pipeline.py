@@ -51,7 +51,7 @@ def generate_counterfactual_dataset(
             print("Generating {} dataset...".format(mode))
             print("WARNING: This will take about 3 hours for train set and 20 mins for validation set.")
             arguments = "--mode random --weights_path imagenet/weights/cgn.pth"\
-                f" --n_data {n_samples} --run_name {prefix}-{mode} --truncation {trunc} --batch_sz 1"\
+                f" --n_data {n_samples} --run_name {prefix}_{mode} --truncation {trunc} --batch_sz 1"\
                 f" --ignore_time_in_filename"
             cmd = f"python {script_path} {arguments}"
             call(cmd, shell=True, cwd='../cgn_framework')
@@ -163,10 +163,10 @@ def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=
 if __name__ == "__main__":
     metrics_clf, df_ood = run_experiments(  seed=0, 
                                             generate_cf_data=True, 
-                                            disp_epoch=1, #TODO change number of epochs
+                                            disp_epoch=15, #TODO change number of epochs
                                             ignore_cache=True,
-                                            cf_no_train=5,
-                                            cf_no_val=5) #TODO Change number of CF here
+                                            cf_no_train=20000,
+                                            cf_no_val=3000) #TODO Change number of CF here
 
     # construct Table 3 of the paper
     heads = ["shape", "texture", "bg"]

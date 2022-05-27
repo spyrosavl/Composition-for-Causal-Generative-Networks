@@ -206,9 +206,13 @@ def main(args):
                 #x_gen = mask * foreground + (1 - mask) * background
 
                 #Use Poisson blending
-                input_img_source = foreground.squeeze(0).transpose(0,1).transpose(1,2)
-                input_img_target = background.squeeze(0).transpose(0,1).transpose(1,2)
-                input_img_mask = mask.squeeze(0).transpose(0,1).transpose(1,2)
+                input_img_source = foreground.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
+                input_img_source = (input_img_source-input_img_source.min()) / (input_img_source.max()-input_img_source.min())
+
+                input_img_target = background.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
+                input_img_target = (input_img_target-input_img_target.min()) / (input_img_target.max()-input_img_target.min())
+
+                input_img_mask = mask.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
                 input_img_mask = (input_img_mask > 0.5).to(torch.uint8)
 
                 img_out = poissonSeamlessCloning(
