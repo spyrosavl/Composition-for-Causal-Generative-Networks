@@ -39,9 +39,8 @@ def generate_counterfactual_dataset(
         run_name = f"{prefix}_{mode}_trunc_{trunc}"
         n_samples = eval(f"n_{mode}")
 
-        data_root = join(REPO_PATH, "cgn_framework/imagenet/data", run_name)
+        data_root = join(REPO_PATH, "cgn_framework/imagenet/data/cgn/deterministic_refinement/", run_name) #TODO Change this one
         ims = glob(join(data_root, "ims/*.jpg"))
-
         if isdir(data_root) and len(ims) >= n_samples:
             print("")
             print(f"{mode.capitalize()} dataset exists with {n_samples} images, skipping...")
@@ -51,7 +50,7 @@ def generate_counterfactual_dataset(
             print("Generating {} dataset...".format(mode))
             print("WARNING: This will take about 3 hours for train set and 20 mins for validation set.")
             arguments = "--mode random --weights_path imagenet/weights/cgn.pth"\
-                f" --n_data {n_samples} --run_name {prefix}-{mode} --truncation {trunc} --batch_sz 1"\
+                f" --n_data {n_samples} --run_name {prefix}_{mode} --truncation {trunc} --batch_sz 1"\
                 f" --ignore_time_in_filename"
             cmd = f"python {script_path} {arguments}"
             call(cmd, shell=True, cwd='../cgn_framework')

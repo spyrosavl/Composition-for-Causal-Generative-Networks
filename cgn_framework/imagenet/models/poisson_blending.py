@@ -5,6 +5,7 @@ import numpy as np
 import scipy.sparse
 from scipy.sparse import linalg
 import pyamg
+import torch
 
 # pre-process the mask array so that uint64 types from opencv.imread can be adapted
 def prepare_mask(mask):
@@ -20,14 +21,21 @@ def prepare_mask(mask):
     return mask
 
 
+def normalize(tensor):
+    return (tensor + tensor.min().abs()) / (tensor.max() - tensor.min())
+
 def poissonSeamlessCloning(img_source, img_target, src_mask, offset=(0, 0)): 
     assert img_source.shape == img_target.shape
     assert img_source.ndim == 3 and img_target.ndim == 3 and src_mask.ndim == 3
     assert img_source.shape[2] == img_target.shape[2] and img_source.shape[2] == 3
-    assert src_mask.dtype == np.uint8 and img_source.dtype == np.uint8 and img_target.dtype == np.uint8
+    assert src_mask.dtype == torch.uint8 and img_source.dtype == torch.float32 and img_target.dtype == torch.float32
     assert src_mask.all() >= 0 and src_mask.all() <= 1
-    assert img_source.max() <= 255 and img_source.min() >= 0
-    assert img_target.max() <= 255 and img_target.min() >= 0
+    assert img_source.all() <= 1 and img_source.all() >= 0
+    assert img_target.all() <= 1 and img_target.all() >= 0
+
+    img_source = img_source.numpy().astype(np.float32)
+    img_target = img_target.numpy().astype(np.float32)
+    src_mask = src_mask.numpy()
 
     # compute regions to be blended
     region_source = (max(-offset[0], 0), max(-offset[1], 0),
@@ -87,12 +95,14 @@ def poissonSeamlessCloning(img_source, img_target, src_mask, offset=(0, 0)):
 
         # solve Ax = b
         #x = pyamg.solve(a_, b, verb=False, tol=1e-10)
-        x = linalg.spsolve(a_, b)
+        x = torch.tensor(linalg.spsolve(a_, b))
         # assign x to target image
         x = np.reshape(x, region_size)
-        x[x > 255] = 255
-        x[x < 0] = 0
+        x = np.clip(x, 0, 1)
         x = np.array(x, img_target.dtype)
         output[region_target[0]:region_target[2], region_target[1]:region_target[3], num_layer] = x
 
+    output = torch.from_numpy(output)
+    assert output.shape[2] == output.shape[2] and output.shape[2] == 3
+    assert output.dtype == torch.float32
     return output

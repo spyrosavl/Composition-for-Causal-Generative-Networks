@@ -89,7 +89,7 @@ def fit(cfg, cgn, opts, losses):
     time_str = datetime.now().strftime("%Y_%m_%d_%H_%M")
     if cfg.WEIGHTS_PATH:
         weights_path = str(pathlib.Path(cfg.WEIGHTS_PATH).parent)
-        start_ep = int(pathlib.Path(cfg.WEIGHTS_PATH).stem[3:])
+        start_ep = 50 #int(pathlib.Path(cfg.WEIGHTS_PATH).stem[3:]) #FIXME: I changed this one because the weights name is wrongs
         sample_path = weights_path.replace('weights', 'samples')
         ep_range = (start_ep, start_ep + episodes)
     else:
@@ -119,18 +119,20 @@ def fit(cfg, cgn, opts, losses):
         x_gt, mask, premask, foreground, background, background_mask = cgn()
         #x_gen = mask * foreground + (1 - mask) * background
         
-        #Poisson blending
-        input_img_source = np.clip(255*foreground.squeeze(0).numpy().transpose(1,2,0), 0, 255).astype(np.uint8)
-        input_img_target = np.clip(255*background.squeeze(0).numpy().transpose(1,2,0), 0, 255).astype(np.uint8)
-        input_img_mask = mask.squeeze(0).numpy().transpose(1,2,0)
-        input_img_mask = (input_img_mask > 0.5).astype(np.uint8)
+        #Use Poisson blending
+        input_img_source = foreground.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
+        input_img_target = background.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
+        input_img_mask = mask.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
+        input_img_mask = (input_img_mask > 0.5).to(torch.uint8)
 
         img_out = poissonSeamlessCloning(
             img_source=input_img_source,
             img_target=input_img_target,
             src_mask=input_img_mask
         )
-        x_gen = torch.Tensor(img_out.transpose(2,0,1)).unsqueeze(0)/255
+
+        x_gen = img_out.transpose(1,2).transpose(0,1)
+        x_gen = x_gen.unsqueeze(0)
 
         # Losses
         losses_g = {}

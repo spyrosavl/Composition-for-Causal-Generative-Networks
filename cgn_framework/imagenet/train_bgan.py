@@ -274,11 +274,11 @@ if __name__ == "__main__":
                         help='Weights and samples will be saved under experiments/model_name')
     parser.add_argument('--weights_path', default='imagenet/weights/cgn.pth',
                         help='provide path to continue training')
-    parser.add_argument('--epochs', type=int, default=50,
+    parser.add_argument('--epochs', type=int, default=500,
                         help="We don't do dataloading, hence, one episode = one gradient update.")
-    parser.add_argument('--batch_sz', type=int, default=256,
+    parser.add_argument('--batch_sz', type=int, default=1,
                         help='Batch size, use in conjunciton with batch_acc')
-    parser.add_argument('--batch_acc', type=int, default=8,
+    parser.add_argument('--batch_acc', type=int, default=2,
                         help='pseudo_batch_size = batch_acc*batch size')
 
     # ToDo: add more
