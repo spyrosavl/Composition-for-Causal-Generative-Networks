@@ -99,7 +99,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
     
     if cfg.BGAN_WEIGHTS_PATH:
         "Loaded Blending GAN's weights"
-        start_ep = int(pathlib.Path(cfg.WEIGHTS_PATH).stem[3:])
+        start_ep = int(pathlib.Path(cfg.BGAN_WEIGHTS_PATH).stem[3:])
         ep_range = (start_ep, start_ep + episodes)
     else:
         ep_range = (0, episodes)
