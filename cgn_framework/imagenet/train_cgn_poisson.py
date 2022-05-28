@@ -20,6 +20,24 @@ from shared.losses import *
 from utils import Optimizers
 from imagenet.models.poisson_blending import poissonSeamlessCloning
 
+def poisson_blending(cgn, mask, foreground, background):
+    input_img_source = foreground.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
+    input_img_source = (input_img_source-input_img_source.min()) / (input_img_source.max()-input_img_source.min())
+
+    input_img_target = background.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
+    input_img_target = (input_img_target-input_img_target.min()) / (input_img_target.max()-input_img_target.min())
+
+    input_img_mask = mask.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
+    input_img_mask = (input_img_mask > 0.5).to(torch.uint8)
+
+    img_out = poissonSeamlessCloning(
+        img_source=input_img_source,
+        img_target=input_img_target,
+        src_mask=input_img_mask
+    )
+    return img_out.transpose(1,2).transpose(0,1).unsqueeze(0).to(cgn.get_device())
+
+
 def save_sample_sheet(cgn, u_fixed, sample_path, ep_str):
     cgn.eval()
     dev = u_fixed.to(cgn.get_device())
@@ -32,10 +50,14 @@ def save_sample_sheet(cgn, u_fixed, sample_path, ep_str):
             y_vec = cgn.get_class_vec(y, sz=1)
             inp = (u_fixed.to(dev), y_vec.to(dev), cgn.truncation)
             x_gt, mask, premask, foreground, background, bg_mask = cgn(inp)
-            x_gen = mask * foreground + (1 - mask) * background
+            #Original blending
+            x_gen_alpha = mask * foreground + (1 - mask) * background
+            #Use Poisson blending
+            x_gen = poisson_blending(cgn, mask, foreground, background)
+
 
             # build class grid
-            to_plot = [premask, foreground, background, x_gen, x_gt]
+            to_plot = [premask, foreground, background, x_gen_alpha, x_gen, x_gt]
             grid = make_grid(torch.cat(to_plot).detach().cpu(),
                              nrow=len(to_plot), padding=2, normalize=True)
 
@@ -63,7 +85,11 @@ def save_sample_single(cgn, u_fixed, sample_path, ep_str):
             y_vec = cgn.get_class_vec(y, sz=1)
             inp = (u_fixed.to(dev), y_vec.to(dev), cgn.truncation)
             _, mask, premask, foreground, background, _ = cgn(inp)
-            x_gen = mask * foreground + (1 - mask) * background
+            #Original blending
+            x_gen_alpha = mask * foreground + (1 - mask) * background
+            #Use Poisson blending
+            x_gen = poisson_blending(cgn, mask, foreground, background)
+
 
             # save_images
             path = join(sample_path, f'{y}_1_premask_' + ep_str + '.png')
@@ -76,6 +102,8 @@ def save_sample_single(cgn, u_fixed, sample_path, ep_str):
             torchvision.utils.save_image(background, path, normalize=True)
             path = join(sample_path, f'{y}_5_gen_ims_' + ep_str + '.png')
             torchvision.utils.save_image(x_gen, path, normalize=True)
+            path = join(sample_path, f'{y}_6_gen_alpha_ims_' + ep_str + '.png')
+            torchvision.utils.save_image(x_gen_alpha, path, normalize=True)
 
     cgn.train()
 
@@ -87,19 +115,28 @@ def fit(cfg, cgn, opts, losses):
 
     # directories for experiments
     time_str = datetime.now().strftime("%Y_%m_%d_%H_%M")
-    if cfg.WEIGHTS_PATH:
-        weights_path = str(pathlib.Path(cfg.WEIGHTS_PATH).parent)
-        start_ep = 50 #int(pathlib.Path(cfg.WEIGHTS_PATH).stem[3:]) #FIXME: I changed this one because the weights name is wrongs
-        sample_path = weights_path.replace('weights', 'samples')
-        ep_range = (start_ep, start_ep + episodes)
-    else:
-        model_path = join('imagenet', 'experiments',
-                          f'cgn_{time_str}_{cfg.MODEL_NAME}')
-        weights_path = join(model_path, 'weights')
-        sample_path = join(model_path, 'samples')
-        pathlib.Path(weights_path).mkdir(parents=True, exist_ok=True)
-        pathlib.Path(sample_path).mkdir(parents=True, exist_ok=True)
-        ep_range = (0, episodes)
+    # if cfg.WEIGHTS_PATH:
+    #     weights_path = str(pathlib.Path(cfg.WEIGHTS_PATH).parent)
+    #     start_ep = 50 #int(pathlib.Path(cfg.WEIGHTS_PATH).stem[3:]) #FIXME: I changed this one because the weights name is wrongs
+    #     sample_path = weights_path.replace('weights', 'samples')
+    #     ep_range = (start_ep, start_ep + episodes)
+    # else:
+    #     model_path = join('imagenet', 'experiments',
+    #                       f'cgn_{time_str}_{cfg.MODEL_NAME}')
+    #     weights_path = join(model_path, 'weights')
+    #     sample_path = join(model_path, 'samples')
+    #     pathlib.Path(weights_path).mkdir(parents=True, exist_ok=True)
+    #     pathlib.Path(sample_path).mkdir(parents=True, exist_ok=True)
+    #     ep_range = (0, episodes)
+
+    model_path = join('imagenet', 'experiments', f'cgn_{time_str}_{cfg.MODEL_NAME}')
+    weights_path = join(model_path, 'weights')
+    sample_path = join(model_path, 'samples')
+    pathlib.Path(weights_path).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(sample_path).mkdir(parents=True, exist_ok=True)
+    ep_range = (0, episodes)
+    print(f"Weights path: {weights_path}")
+    print(f"Samples path: {sample_path}")
 
     # fixed noise sample
     u_fixed_path = join('imagenet', 'experiments', 'u_fixed.pt')
@@ -108,6 +145,9 @@ def fit(cfg, cgn, opts, losses):
         torch.save(u_fixed, u_fixed_path)
     else:
         u_fixed = torch.load(u_fixed_path)
+    #Adjust the size of the noise vector to the batch size
+    if cfg.TRAIN.BATCH_SZ < u_fixed.shape[0]:
+        u_fixed = u_fixed[:cfg.TRAIN.BATCH_SZ]
 
     # Training Loop
     cgn.train()
@@ -117,24 +157,11 @@ def fit(cfg, cgn, opts, losses):
     pbar = tqdm(range(*ep_range))
     for i, ep in enumerate(pbar):
         x_gt, mask, premask, foreground, background, background_mask = cgn()
-        #x_gen = mask * foreground + (1 - mask) * background
         
+        #Original blending
+        x_gen_alpha = mask * foreground + (1 - mask) * background
         #Use Poisson blending
-        input_img_source = foreground.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
-        input_img_source = (input_img_source-input_img_source.min()) / (input_img_source.max()-input_img_source.min())
-
-        input_img_target = background.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
-        input_img_target = (input_img_target-input_img_target.min()) / (input_img_target.max()-input_img_target.min())
-
-        input_img_mask = mask.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
-        input_img_mask = (input_img_mask > 0.5).to(torch.uint8)
-
-        img_out = poissonSeamlessCloning(
-            img_source=input_img_source,
-            img_target=input_img_target,
-            src_mask=input_img_mask
-        )
-        x_gen = img_out.transpose(1,2).transpose(0,1).unsqueeze(0)
+        x_gen = poisson_blending(cgn, mask, foreground, background)
 
         # Losses
         losses_g = {}
@@ -176,6 +203,18 @@ def main(cfg):
         weights = torch.load(cfg.WEIGHTS_PATH)
         weights = {k.replace('module.', ''): v for k, v in weights.items()}
         cgn.load_state_dict(weights)
+
+    # print model size
+    param_size = 0
+    for param in cgn.parameters():
+        param_size += param.nelement() * param.element_size()
+    buffer_size = 0
+    for buffer in cgn.buffers():
+        buffer_size += buffer.nelement() * buffer.element_size()
+
+    size_all_mb = (param_size + buffer_size) / 1024**2
+    print('CGN size: {:.3f}MB'.format(size_all_mb))
+
 
     # optimizers
     opts = Optimizers()
