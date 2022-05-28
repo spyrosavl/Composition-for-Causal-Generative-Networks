@@ -63,10 +63,11 @@ def train_classifier(args: dict = dict(lr=0.001), prefix="in-mini", seed=0, disp
     args = dotdict(args)
     seed_everything(seed)
 
-    run_name = f"{prefix}-classifier"
+    experiment_name = "fake_cgn" #TODO: Change this one
+    run_name = f"{prefix}-classifier-{experiment_name}" 
     expt_dir = join(REPO_PATH, "cgn_framework/imagenet/experiments", f"classifier__{run_name}")
-    epoch_metrics_path = join(expt_dir, f"epochwise_metrics/epoch_{disp_epoch}.pt")
-    cf_data_path = f"imagenet/data/cgn/fake_cgn/{prefix}" #TODO: Change this
+    epoch_metrics_path = join(expt_dir, f"epochwise_metrics/epoch_{disp_epoch-1}.pt")
+    cf_data_path = f"imagenet/data/cgn/{experiment_name}/{prefix}" 
     if not exists(epoch_metrics_path) or ignore_cache:
         
         print("::::: Training classifier :::::")
