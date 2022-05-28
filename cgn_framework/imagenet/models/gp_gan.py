@@ -19,10 +19,9 @@ def weights_init(m):
 
 class Encoder(nn.Module):
     
-    def __init__(self, ngf=64, z_size=4000, as_discriminator=False, img_size = (3, 256, 256)):
+    def __init__(self, ngf=64, z_size=4000, img_size = (3, 256, 256)):
         super(Encoder, self).__init__()
 
-        self.discriminator = as_discriminator
 
         self.model = nn.Sequential(
             nn.Conv2d(in_channels=3, out_channels=ngf, kernel_size=(4,4), stride=2, padding=1, bias=False), # outputs 112x112
@@ -53,12 +52,38 @@ class Encoder(nn.Module):
 
     def forward(self, input):
         x = self.model(input)
-        if self.discriminator:
-            x = self.clf(x).squeeze(1)  # returns tensor of size [1]
-        else:
-            x = self.output(x)
+        x = self.output(x)
         return x
 
+class Discriminator(nn.Module):
+    
+    def __init__(self, ngf=64, z_size=4000, img_size = (3, 256, 256)):
+        super(Discriminator, self).__init__()
+
+        self.model = nn.Sequential(
+            nn.Conv2d(in_channels=3, out_channels=ngf, kernel_size=(4,4), stride=2, padding=1, bias=False), # outputs 112x112
+            nn.LeakyReLU(negative_slope=0.2),
+            nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(4,4), stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(negative_slope=0.2),
+            nn.Conv2d(in_channels=128, out_channels=256, kernel_size=(4,4), stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(negative_slope=0.2),
+            nn.Conv2d(in_channels=256, out_channels=512, kernel_size=(4,4), stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(negative_slope=0.2),  
+        )
+        self.clf = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(8192, 1)
+        )
+        self.model.apply(weights_init)
+        self.clf.apply(weights_init)
+
+    def forward(self, input):
+        x = self.model(input)
+        x = self.clf(x).squeeze(1)  # returns tensor of size [1]
+        return x
 
 class Decoder(nn.Module):
 

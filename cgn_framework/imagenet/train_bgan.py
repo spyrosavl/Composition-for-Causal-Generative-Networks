@@ -21,7 +21,7 @@ repackage.up()
 
 from imagenet.config_gpgan import get_cfg_gp_gan_defaults
 from imagenet.models import BlendGAN, BlendNet, CGN
-from imagenet.models.gp_gan import Encoder
+from imagenet.models.gp_gan import Encoder, Discriminator
 from shared.losses import *
 from utils import Optimizers
 
@@ -132,7 +132,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
             opts.zero_grad(['discriminator'])
 
             #Discriminate real and fake
-            validity_real = discriminator(x_gt_rsz)
+            validity_real = discriminator(x_gt_rsz)  # will throw referenced before assignment error
             validity_fake = discriminator(x_l.detach())
 
             # Losses
@@ -244,7 +244,7 @@ def main(cfg):
     # init model
     blend_gan = BlendNet()
     # init discriminator
-    discriminator = Encoder(as_discriminator=True)
+    discriminator = Discriminator()
 
     # init cgn
     cgn = CGN(
