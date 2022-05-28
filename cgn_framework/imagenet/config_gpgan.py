@@ -11,7 +11,6 @@ __C.CGN_WEIGHTS_PATH = ''
 __C.BGAN_WEIGHTS_PATH = ''
 __C.DISC_WEIGHTS_PATH = ''
 
-
 # Logging
 __C.LOG = CN()
 __C.LOG.SAVE_ITER = 500
