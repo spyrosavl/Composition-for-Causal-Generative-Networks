@@ -291,7 +291,7 @@ def main(cfg):
     blend_gan = blend_gan.to(device)
     discriminator = discriminator.to(device)
 
-    fit(cfg, blend_gan, discriminator, cgn, opts, losses, device, 100)  # train models
+    fit(cfg, blend_gan, discriminator, cgn, opts, losses, device, None)  # train models
 
 
   # ToDo: check if correct
