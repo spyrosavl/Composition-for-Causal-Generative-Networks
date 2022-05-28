@@ -35,7 +35,10 @@ def poisson_blending(cgn, mask, foreground, background):
         img_target=input_img_target,
         src_mask=input_img_mask
     )
-    return img_out.transpose(1,2).transpose(0,1).unsqueeze(0).to(cgn.get_device())
+    img_out = img_out.transpose(1,2).transpose(0,1).unsqueeze(0).to(cgn.get_device())
+    #Normalize between -1 and 1
+    img_out = (img_out-0.5)*2
+    return img_out
 
 
 def save_sample_sheet(cgn, u_fixed, sample_path, ep_str):
