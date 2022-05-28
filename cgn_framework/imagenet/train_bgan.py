@@ -137,7 +137,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
             x_gt_rsz = torchvision.transforms.functional.resize(x_gt, size=(64,64))
             # get the low resolution, well-blended, semantic & colour accurate output x_l
             x_l = blend_gan(x_resz)
-            
+
             opts.zero_grad(['discriminator'])
 
             #Discriminate real and fake
@@ -235,7 +235,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
             pbar.set_description(msg)
             save_samples(blend_gan, cgn, sample_path, ep_str)
             torch.save(blend_gan.state_dict(), join(weights_path, ep_str + '.pth'))
-            torch.save(discriminator.state_dict(join(weights_path, 'DISCRIMINATOR' +ep_str + '.pth')))
+            torch.save(discriminator.state_dict(), join(weights_path, 'DISCRIMINATOR' +ep_str + '.pth')))
 
     if cfg.LOG.LOSSES: # TODO: NOT WORKING
         path = join(loss_path, 'losses.csv')
