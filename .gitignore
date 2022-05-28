@@ -5,6 +5,8 @@ sketch/
 pytorch_grad_cam/
 notes.md
 tests.ipynb
+plots.ipynb 
+
 
 # slurm
 slurm_output*.out
@@ -15,6 +17,7 @@ figures/*.pdf
 *.pdf
 *experiments/results/*.pth
 experiments/weights/*.pth*
+experiments/
 media/
 
 # Gradio outputs

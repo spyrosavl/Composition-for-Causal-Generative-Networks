@@ -17,6 +17,7 @@ dependencies:
   - gdown==4.4
   - seaborn
   - scikit-learn
+  - scikit-image
   - scipy
   - ipdb
   - jupyterlab
