@@ -2,10 +2,10 @@
 
 #SBATCH --partition=gpu_shared_course
 #SBATCH --gres=gpu:1
-#SBATCH --job-name=IN-mini
+#SBATCH --job-name=CGN-Retrain-Poisson
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
-#SBATCH --time=01:00:00
+#SBATCH --time=40:00:00
 #SBATCH --mem=32000M
 #SBATCH --output=slurm_output_%A.out
 
@@ -16,4 +16,4 @@ module load Anaconda3/2021.05
 # Activate your environment
 source activate cgn-gpu
 
-python imagenet/train_cgn_poisson.py --model_name cgn_poisson --weights_path imagenet/weights/cgn.pth --batch_sz 50 --batch_acc 1024 --episodes 20
+python imagenet/train_cgn_poisson.py --model_name cgn_poisson --weights_path imagenet/weights/cgn.pth --batch_sz 5 --batch_acc 1024 --episodes 10
