@@ -8,8 +8,7 @@ cfg = __C
 __C.MODEL_NAME = 'tmp'
 
 __C.CGN_WEIGHTS_PATH = 'imagenet/weights/cgn.pth'
-__C.BGAN_WEIGHTS_PATH = 'imagenet/weights/network_weights'
-
+__C.BGAN_WEIGHTS_PATH = 'imagenet/weights/network_weight`
 # Logging
 __C.LOG = CN()
 __C.LOG.SAVE_ITER = 500
