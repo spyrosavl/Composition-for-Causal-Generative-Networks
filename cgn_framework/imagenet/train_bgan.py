@@ -80,7 +80,7 @@ def save_sample_single(blend_gan, cgn, sample_path, ep_str):
     blend_gan.train()
 
 
-def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
+def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head_start=100):
     """ Training the blend_gan
     Args:
         - cfg: configurations
@@ -117,12 +117,41 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
     pathlib.Path(sample_path).mkdir(parents=True, exist_ok=True)
     pathlib.Path(loss_path).mkdir(parents=True, exist_ok=True)
 
+    loss_per_epoch = {'blend_gan': [],
+                    'discriminator': []}  # recording losses to plot later
+
+
+    """ Give headstart to the discriminator """
+    if disc_head_start is not None: 
+        print("Training the discriminator before fine tuning...")
+        blend_gan.eval()
+        discriminator.train()
+        pbar = tqdm(range(0, disc_head_start))
+        for i, ep in enumerate(pbar):
+
+            opts.zero_grad(['discriminator'])
+
+            #Discriminate real and fake
+            validity_real = discriminator(x_gt_rsz)
+            validity_fake = discriminator(x_l.detach())
+
+            # Losses
+            losses_d = {}
+            losses_d['real'] = L_adv(validity_real, valid)
+            losses_d['fake'] = L_adv(validity_fake, fake)
+            loss_d = sum(losses_d.values()) / 2
+            # print(f"DISC LOSSES in epi: {ep}", losses_d)
+            loss_per_epoch['discriminator'].append(losses_d)
+            # Backprop and step
+            loss_d.backward()
+            opts.step(['discriminator'], False)
+
 
     # Training loop
     blend_gan.train()
+    discriminator.train()
     L_l2, L_adv = losses
-    loss_per_epoch = {'blend_gan': [],
-                    'discriminator': []}  # recording losses to plot later
+
 
     save_samples = save_sample_single if cfg.LOG.SAVE_SINGLES else save_sample_sheet
 
@@ -152,10 +181,8 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
         validity = discriminator(x_l)
         # calculate losses
         losses_g = {} 
-
         losses_g['L_l2'] = L_l2(x_l, x_gt_rsz)
-        losses_g['L_adv'] = L_adv(validity, valid)
-
+        losses_g['L_adv'] = L_adv(validity, valid) * cfg.LAMBDA.ADV
         # print(f"LOSSES in epi: {ep}", losses_g)
 
         loss_g = sum(losses_g.values())
@@ -199,6 +226,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None):
             pbar.set_description(msg)
             save_samples(blend_gan, cgn, sample_path, ep_str)
             torch.save(blend_gan.state_dict(), join(weights_path, ep_str + '.pth'))
+            torch.save(discriminator.state_dict(join(weights_path, 'DISCRIMINATOR' +ep_str + '.pth')))
 
     if cfg.LOG.LOSSES: # TODO: NOT WORKING
         path = join(loss_path, 'losses.csv')
@@ -229,9 +257,9 @@ def main(cfg):
     discriminator.to(device)
     cgn.to(device)
 
-    if cfg.BGAN_WEIGHTS_PATH:
-        print("Loading BGAN weights")
-        weights = torch.load(cfg.BGAN_WEIGHTS_PATH, map_location=torch.device(device))
+    if cfg.BlGAN_WEIGHTS_PATH:
+        print("Loading BLENDGAN weights")
+        weights = torch.load(cfg.BlGAN_WEIGHTS_PATH, map_location=torch.device(device))
         blend_gan.load_state_dict(weights)
         # weights = {k.replace('module.', ''): v for k, v in weights.items()}
         # blend_gan.load_state_dict(weights)
@@ -240,6 +268,10 @@ def main(cfg):
         weights = torch.load(cfg.CGN_WEIGHTS_PATH, map_location=torch.device(device))
         weights = {k.replace('module.', ''): v for k, v in weights.items()}
         cgn.load_state_dict(weights)
+    if cfg.DISC_WEIGHTS_PATH:
+        weights = torch.load(cfg.DISC_WEIGHTS_PATH, map_location=torch.device(device))
+        discriminator.load_state_dict(weights)
+
     
     blend_gan.to(device)
     discriminator.to(device)
@@ -252,14 +284,14 @@ def main(cfg):
     
     #losses
     L_l2 = ReconstructionLoss(mode='l2', loss_weight=cfg.LAMBDA.L2)
-    L_adv = torch.nn.MSELoss()   # ToDo: add correct loss
+    L_adv = torch.nn.MSELoss()  # ToDo: add correct loss
     losses = (L_l2, L_adv)
 
     # push to device and train
     blend_gan = blend_gan.to(device)
     discriminator = discriminator.to(device)
 
-    fit(cfg, blend_gan, discriminator, cgn, opts, losses, device)  # train models
+    fit(cfg, blend_gan, discriminator, cgn, opts, losses, device, 100)  # train models
 
 
   # ToDo: check if correct

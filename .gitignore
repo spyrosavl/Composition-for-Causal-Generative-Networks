@@ -6,7 +6,7 @@ pytorch_grad_cam/
 notes.md
 tests.ipynb
 plots.ipynb 
-
+ssnetwork_weights.zip
 
 # slurm
 slurm_output*.out
