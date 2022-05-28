@@ -128,7 +128,16 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
         discriminator.train()
         pbar = tqdm(range(0, disc_head_start))
         for i, ep in enumerate(pbar):
+            x_gt, mask, premask, foreground, background, background_mask = cgn()
+            # generate x (copy + paste composition)
+            x = mask * foreground + (1 - mask) * background
 
+            # downsize the image
+            x_resz = torchvision.transforms.functional.resize(x, size=(64,64))
+            x_gt_rsz = torchvision.transforms.functional.resize(x_gt, size=(64,64))
+            # get the low resolution, well-blended, semantic & colour accurate output x_l
+            x_l = blend_gan(x_resz)
+            
             opts.zero_grad(['discriminator'])
 
             #Discriminate real and fake
