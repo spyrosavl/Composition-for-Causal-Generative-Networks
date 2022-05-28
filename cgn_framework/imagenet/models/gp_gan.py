@@ -44,7 +44,7 @@ class Encoder(nn.Module):
 
         self.clf = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(1, 892)
+            nn.Linear(8192, 1)
         )
 
         self.model.apply(weights_init)
