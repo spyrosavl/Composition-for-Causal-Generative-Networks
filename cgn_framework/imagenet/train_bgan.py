@@ -235,7 +235,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
             pbar.set_description(msg)
             save_samples(blend_gan, cgn, sample_path, ep_str)
             torch.save(blend_gan.state_dict(), join(weights_path, ep_str + '.pth'))
-            torch.save(discriminator.state_dict(), join(weights_path, 'DISCRIMINATOR' +ep_str + '.pth')))
+            torch.save(discriminator.state_dict(), join(weights_path, 'DISCRIMINATOR' +ep_str + '.pth'))
 
     if cfg.LOG.LOSSES: # TODO: NOT WORKING
         path = join(loss_path, 'losses.csv')
