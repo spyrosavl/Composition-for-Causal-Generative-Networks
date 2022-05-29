@@ -21,7 +21,7 @@ from utils import Optimizers
 from imagenet.models.poisson_blending import poissonSeamlessCloning
 
 def poisson_blending(cgn, mask, foreground, background):
-    assert(mask.shape[0] == 1 and foreground.shape[0] == 1 and background.shape[0] == 1, "batch size should be 1")
+    assert((mask.shape[0] == 1) and (foreground.shape[0] == 1) and (background.shape[0] == 1))
     input_img_source = foreground.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
     input_img_source = (input_img_source-input_img_source.min()) / (input_img_source.max()-input_img_source.min())
 
