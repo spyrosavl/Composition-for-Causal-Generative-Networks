@@ -6,6 +6,7 @@ import pathlib
 from tqdm import tqdm
 import argparse
 import csv
+import matplotlib.pyplot as plt
 
 import repackage
 repackage.up()
@@ -46,6 +47,8 @@ def save_sample_sheet(blend_gan, cgn, sample_path, ep_str):
         # resize to 256x256
         x_l = torchvision.transforms.functional.resize(x_l, size=(256,256))
 
+
+        
         # build class grid
         to_plot = [x_gen, x_l, x_gt]
         grid = make_grid(torch.cat(to_plot).detach().cpu(),
@@ -68,7 +71,7 @@ def save_sample_single(blend_gan, cgn, sample_path, ep_str):
         #for y in ys:
         # generate
         _, mask, _, foreground, background, _ = cgn()
-        x = mask * foreground + (1 - mask) * background
+        x_gen = mask * foreground + (1 - mask) * background
         x_resz = torchvision.transforms.functional.resize(x_gen, size=(64,64))
         x_l = blend_gan(x_resz)
         x_l = torchvision.transforms.functional.resize(x_l, size=(256,256))
@@ -300,7 +303,7 @@ def main(cfg):
     blend_gan = blend_gan.to(device)
     discriminator = discriminator.to(device)
 
-    fit(cfg, blend_gan, discriminator, cgn, opts, losses, device, 100)  # train models
+    fit(cfg, blend_gan, discriminator, cgn, opts, losses, device, None)  # train models
 
 
   # ToDo: check if correct
