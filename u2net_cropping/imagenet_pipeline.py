@@ -39,7 +39,7 @@ def generate_counterfactual_dataset(
         run_name = f"{prefix}_{mode}_trunc_{trunc}"
         n_samples = eval(f"n_{mode}")
 
-        data_root = join(REPO_PATH, "cgn_framework/imagenet/data", run_name)
+        data_root = join(REPO_PATH, "cgn_framework/imagenet/data/cgn/fake_cgn/", run_name) #TODO Change this one
         ims = glob(join(data_root, "ims/*.jpg"))
 
         if isdir(data_root) and len(ims) >= n_samples:
@@ -108,7 +108,7 @@ def run_eval_on_ood_benchmarks(seed=0, ignore_cache=False, show=False):
                 weight_path = "cgn_framework/imagenet/weights/resnet50_from_scratch_model_best.pth.tar"
             
             if classifier == "cgn-ensemble":
-                weight_path = "cgn_framework/imagenet/weights/classifier_on_in-mini_model_best.pth"
+                weight_path = "cgn_framework/imagenet/experiments/classifier__in-mini-classifier-fake_cgn/model_best.pth" #TODO: Change this one
 
             args = dict(
                 seed=seed,

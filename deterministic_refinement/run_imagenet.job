@@ -2,7 +2,7 @@
 
 #SBATCH --partition=gpu_shared_course
 #SBATCH --gres=gpu:1
-#SBATCH --job-name=IN-mini
+#SBATCH --job-name=Deterministic-Refinement
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
 #SBATCH --time=24:00:00

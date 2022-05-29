@@ -309,7 +309,7 @@ class BigGAN(nn.Module):
 
     def forward(self, u, y, truncation):
         assert 0 < truncation <= 1
-
+        
         embed = self.embeddings(y)
         cond_vector = torch.cat((u, embed), dim=1)
         x_gen = self.generator(cond_vector, truncation)
