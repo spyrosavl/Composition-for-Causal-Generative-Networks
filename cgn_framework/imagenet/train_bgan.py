@@ -26,6 +26,7 @@ from imagenet.models.gp_gan import Encoder, Discriminator
 from shared.losses import *
 from utils import Optimizers
 
+
 def save_sample_sheet(blend_gan, cgn, sample_path, ep_str):
     
     blend_gan.eval()
@@ -45,12 +46,11 @@ def save_sample_sheet(blend_gan, cgn, sample_path, ep_str):
         x_l = blend_gan(x_resz)
 
         # resize to 256x256
-        x_l = torchvision.transforms.functional.resize(x_l, size=(256,256))
+        x_l_uprsz = torchvision.transforms.functional.resize(x_l, size=(256,256))
 
 
-        
         # build class grid
-        to_plot = [x_gen, x_l, x_gt]
+        to_plot = [x_gen, x_l_uprsz, x_gt]
         grid = make_grid(torch.cat(to_plot).detach().cpu(),
                              nrow=len(to_plot), padding=2, normalize=True)
 
@@ -123,7 +123,6 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
     loss_per_epoch = {'blend_gan': [],
                     'discriminator': []}  # recording losses to plot later
 
-
     """ Give headstart to the discriminator """
     if disc_head_start is not None: 
         print("Training the discriminator before fine tuning...")
@@ -163,7 +162,6 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
     blend_gan.train()
     discriminator.train()
     L_l2, L_adv = losses
-
 
     save_samples = save_sample_single if cfg.LOG.SAVE_SINGLES else save_sample_sheet
 
