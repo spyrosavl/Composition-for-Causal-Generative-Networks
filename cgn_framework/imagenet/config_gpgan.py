@@ -8,7 +8,6 @@ cfg = __C
 __C.MODEL_NAME = 'tmp'
 __C.BlGAN_WEIGHTS_PATH = 'imagenet/weights/blend_net_weights'
 __C.CGN_WEIGHTS_PATH = ''
-__C.BGAN_WEIGHTS_PATH = ''
 __C.DISC_WEIGHTS_PATH = ''
 
 # Logging

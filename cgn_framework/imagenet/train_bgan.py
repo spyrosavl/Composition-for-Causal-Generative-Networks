@@ -83,7 +83,7 @@ def save_sample_single(blend_gan, cgn, sample_path, ep_str):
     blend_gan.train()
 
 
-def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head_start=100):
+def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head_start=None):
     """ Training the blend_gan
     Args:
         - cfg: configurations
@@ -108,13 +108,13 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
     sample_path = join(model_path, 'samples')
     loss_path = join(model_path, 'losses')
     
-    # if cfg.BGAN_WEIGHTS_PATH:
-    #     "Loaded Blending GAN's weights"
-    #     start_ep = int(pathlib.Path(cfg.BGAN_WEIGHTS_PATH).stem[3:])
-    #     ep_range = (start_ep, start_ep + episodes)
-    # else:
-    #     ep_range = (0, episodes)
-    ep_range = (0, episodes)
+    if cfg.BlGAN_WEIGHTS_PATH:
+        "Loaded Blending GAN's weights"
+        start_ep = int(pathlib.Path(cfg.BlGAN_WEIGHTS_PATH).stem[3:])
+        ep_range = (start_ep, start_ep + episodes)
+    else:
+        ep_range = (0, episodes)
+    # ep_range = (0, episodes)
 
     pathlib.Path(weights_path).mkdir(parents=True, exist_ok=True)
     pathlib.Path(sample_path).mkdir(parents=True, exist_ok=True)
@@ -301,7 +301,7 @@ def main(cfg):
     blend_gan = blend_gan.to(device)
     discriminator = discriminator.to(device)
 
-    fit(cfg, blend_gan, discriminator, cgn, opts, losses, device, None)  # train models
+    fit(cfg, blend_gan, discriminator, cgn, opts, losses, device)  # train models
 
 
   # ToDo: check if correct
