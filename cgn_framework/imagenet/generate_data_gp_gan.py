@@ -231,7 +231,6 @@ def main(args):
 
                 # convert to tensor
                 xh = torch.tensor(img_out).to(device)
-
                 xh = xh.transpose(2,1).transpose(1,0)
 
                 # #Use Poisson blending
@@ -279,8 +278,10 @@ if __name__ == '__main__':
                         help='How many datapoints to sample')
     parser.add_argument('--run_name', type=str, required=True,
                         help='Name the dataset')
-    parser.add_argument('--weights_path', type=str, required=True,
-                        help='Which weights to load for the CGN')
+    parser.add_argument('--cgn_weights_path', type=str, required=True,
+                        help='Which weights to load for the CGN', default='imagenet/weights/cgn.pth')
+    parser.add_argument('--blendgan_weights_path', type=str, required=True,
+                        help='Which weights to load for the BlendGAN', default='imagenet/weights/blend_net_weights.pth')
     parser.add_argument('--batch_sz', type=int, default=1,
                         help='For generating a dataset, keep this at 1')
     parser.add_argument('--truncation', type=float, default=1.0,

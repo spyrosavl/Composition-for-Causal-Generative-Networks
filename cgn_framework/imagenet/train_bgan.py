@@ -48,6 +48,7 @@ def save_sample_sheet(blend_gan, cgn, sample_path, ep_str):
         save_image(x_l, "/home/lcur1339/dl2-cgn/cgn_framework/imagenet/experiments/blendnetoutput.png")
         # resize to 256x256
         x_l_uprsz = torchvision.transforms.functional.resize(x_l, size=(256,256))
+        save_image(x_l_uprsz, "/home/lcur1339/dl2-cgn/cgn_framework/imagenet/experiments/blendnetoutputrszd.png")
         
 
         # build class grid
@@ -192,7 +193,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
         # get the low resolution, well-blended, semantic & colour accurate output x_l
         x_l = blend_gan(x_resz)
         
-        # adverserial gts, valid == generated from the blend gan
+        # adverserial gts, fake == generated from the blend gan
         valid = torch.ones(x_gt_rsz.size(0),).to(device)  # generate labels of length batch_size
         fake = torch.zeros(x_gt_rsz.size(0),).to(device) 
 
@@ -242,7 +243,6 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
         if cfg.LOG.LOSSES:  
             msg = ''.join([f"[{k}: {v:.3f}]" for k, v in losses_g.items()])
             pbar.set_description(msg)
-            save_samples(blend_gan, cgn, sample_path, ep_str)
             torch.save(blend_gan.state_dict(), join(weights_path, ep_str + '.pth'))
             torch.save(discriminator.state_dict(), join(weights_path, 'DISCRIMINATOR' +ep_str + '.pth'))
 
