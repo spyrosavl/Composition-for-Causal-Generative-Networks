@@ -36,7 +36,7 @@ __C.LAMBDA.ADV = 0.01
 
 # Learning Rates
 __C.LR = CN()
-__C.LR.BGAN = 0#2e-3
+__C.LR.BGAN = 2e-3
 __C.LR.DISC = 3e-4
 
 def get_cfg_gp_gan_defaults():

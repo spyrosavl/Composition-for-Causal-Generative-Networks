@@ -32,14 +32,14 @@ def generate_counterfactual_dataset(
     """Generates CF dataset for ImageNet (size of IN-mini)"""
     seed_everything(seed)
 
-    script_path = join(REPO_PATH, "cgn_framework/imagenet/generate_data_gpgan.py") #TODO Change this one
+    script_path = join(REPO_PATH, "cgn_framework/imagenet/generate_data_gpgan.py") # Change this one
 
     # generate train and val dataset
     for mode in modes:        
         run_name = f"{prefix}_{mode}_trunc_{trunc}"
         n_samples = eval(f"n_{mode}")
 
-        data_root = join(REPO_PATH, "cgn_framework/imagenet/data/cgn/gpGAN_refinement/", run_name) #TODO Change this one
+        data_root = join(REPO_PATH, "cgn_framework/imagenet/data/cgn/gpGAN_refinement/", run_name) # Change this one
         ims = glob(join(data_root, "ims/*.jpg"))
         if isdir(data_root) and len(ims) >= n_samples:
             print("")
@@ -166,10 +166,10 @@ if __name__ == "__main__":
     print("Running imagenet pipelein for the GP-GAN framework")
     metrics_clf, df_ood = run_experiments(  seed=0, 
                                             generate_cf_data=True, 
-                                            disp_epoch=10, #TODO change number of epochs
+                                            disp_epoch=10, #TODO change number of epochs #15
                                             ignore_cache=True,
                                             cf_no_train=20000,
-                                            cf_no_val=3000) #TODO Change number of CF here
+                                            cf_no_val=3000) #TODO Change number of CF here #20000
 
     # construct Table 3 of the paper
     heads = ["shape", "texture", "bg"]
