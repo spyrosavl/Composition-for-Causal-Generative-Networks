@@ -193,7 +193,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
         # get the low resolution, well-blended, semantic & colour accurate output x_l
         x_l = blend_gan(x_resz)
         
-        # adverserial gts, valid == generated from the blend gan
+        # adverserial gts, fake == generated from the blend gan
         valid = torch.ones(x_gt_rsz.size(0),).to(device)  # generate labels of length batch_size
         fake = torch.zeros(x_gt_rsz.size(0),).to(device) 
 
