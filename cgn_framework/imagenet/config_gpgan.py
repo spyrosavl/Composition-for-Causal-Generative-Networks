@@ -6,13 +6,13 @@ cfg = __C
 
 # General
 __C.MODEL_NAME = 'tmp'
-__C.BlGAN_WEIGHTS_PATH = '' #'imagenet/weights/blend_net_weights'
-__C.CGN_WEIGHTS_PATH = ''
+__C.BlGAN_WEIGHTS_PATH = "/home/lcur1339/dl2-cgn/cgn_framework/imagenet/weights/blend_net_weights"
+__C.CGN_WEIGHTS_PATH = "/home/lcur1339/dl2-cgn/cgn_framework/imagenet/weights/cgn.pth"
 __C.DISC_WEIGHTS_PATH = ''
 
 # Logging
 __C.LOG = CN()
-__C.LOG.SAVE_ITER = 500
+__C.LOG.SAVE_ITER = 1
 __C.LOG.SAMPLED_FIXED_NOISE = False
 __C.LOG.SAVE_SINGLES = False
 __C.LOG.LOSSES = True

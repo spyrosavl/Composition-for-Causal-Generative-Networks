@@ -20,5 +20,5 @@ source activate cgn-gpu
 
 # Run your code
 ## runs all experiments to reproduce Table 3 and 4 in the paper
-python imagenet/train_bgan.py
+python imagenet/train_bgan.py --epochs=10 --batch_acc=1
 

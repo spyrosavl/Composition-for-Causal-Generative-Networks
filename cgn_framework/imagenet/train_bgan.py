@@ -16,7 +16,7 @@ from torch import nn, optim
 from torch.autograd import Variable
 import torchvision
 from torchvision.transforms import Pad
-from torchvision.utils import make_grid
+from torchvision.utils import make_grid, save_image
 import repackage
 repackage.up()
 
@@ -43,11 +43,12 @@ def save_sample_sheet(blend_gan, cgn, sample_path, ep_str):
         # resize to 64x64
         x_resz = torchvision.transforms.functional.resize(x_gen, size=(64,64))
        
+        save_image(x_resz, "/home/lcur1339/dl2-cgn/cgn_framework/imagenet/experiments/blendnetinput.png")
         x_l = blend_gan(x_resz)
-
+        save_image(x_l, "/home/lcur1339/dl2-cgn/cgn_framework/imagenet/experiments/blendnetoutput.png")
         # resize to 256x256
         x_l_uprsz = torchvision.transforms.functional.resize(x_l, size=(256,256))
-
+        
 
         # build class grid
         to_plot = [x_gen, x_l_uprsz, x_gt]
@@ -110,8 +111,9 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
     
     if cfg.BlGAN_WEIGHTS_PATH:
         "Loaded Blending GAN's weights"
-        start_ep = int(pathlib.Path(cfg.BlGAN_WEIGHTS_PATH).stem[3:])
-        ep_range = (start_ep, start_ep + episodes)
+        # start_ep = int(pathlib.Path(cfg.BlGAN_WEIGHTS_PATH).stem[3:])
+        # ep_range = (start_ep, start_ep + episodes)
+        ep_range = (0, episodes)
     else:
         ep_range = (0, episodes)
     # ep_range = (0, episodes)
