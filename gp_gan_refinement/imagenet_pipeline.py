@@ -32,16 +32,15 @@ def generate_counterfactual_dataset(
     """Generates CF dataset for ImageNet (size of IN-mini)"""
     seed_everything(seed)
 
-    script_path = join(REPO_PATH, "cgn_framework/imagenet/generate_data_fake_cgn.py") #TODO Change this one
+    script_path = join(REPO_PATH, "cgn_framework/imagenet/generate_data_gpgan.py") #TODO Change this one
 
     # generate train and val dataset
     for mode in modes:        
         run_name = f"{prefix}_{mode}_trunc_{trunc}"
         n_samples = eval(f"n_{mode}")
 
-        data_root = join(REPO_PATH, "cgn_framework/imagenet/data/cgn/fake_cgn/", run_name) #TODO Change this one
+        data_root = join(REPO_PATH, "cgn_framework/imagenet/data/cgn/gpGAN_refinement/", run_name) #TODO Change this one
         ims = glob(join(data_root, "ims/*.jpg"))
-
         if isdir(data_root) and len(ims) >= n_samples:
             print("")
             print(f"{mode.capitalize()} dataset exists with {n_samples} images, skipping...")
@@ -63,11 +62,12 @@ def train_classifier(args: dict = dict(lr=0.001), prefix="in-mini", seed=0, disp
     args = dotdict(args)
     seed_everything(seed)
 
-    experiment_name = "fake_cgn" #TODO: Change this one
+    experiment_name = "gpGAN_refinement" #TODO: Change this one
     run_name = f"{prefix}-classifier-{experiment_name}" 
     expt_dir = join(REPO_PATH, "cgn_framework/imagenet/experiments", f"classifier__{run_name}")
     epoch_metrics_path = join(expt_dir, f"epochwise_metrics/epoch_{disp_epoch-1}.pt")
     cf_data_path = f"imagenet/data/cgn/{experiment_name}/{prefix}" 
+
     if not exists(epoch_metrics_path) or ignore_cache:
         
         print("::::: Training classifier :::::")
@@ -108,7 +108,7 @@ def run_eval_on_ood_benchmarks(seed=0, ignore_cache=False, show=False):
                 weight_path = "cgn_framework/imagenet/weights/resnet50_from_scratch_model_best.pth.tar"
             
             if classifier == "cgn-ensemble":
-                weight_path = "cgn_framework/imagenet/experiments/classifier__in-mini-classifier-fake_cgn/model_best.pth" #TODO: Change this one
+                weight_path = "cgn_framework/imagenet/weights/classifier_on_in-mini_model_best.pth"
 
             args = dict(
                 seed=seed,
@@ -162,9 +162,11 @@ def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=
 
 
 if __name__ == "__main__":
+
+    print("Running imagenet pipelein for the GP-GAN framework")
     metrics_clf, df_ood = run_experiments(  seed=0, 
                                             generate_cf_data=True, 
-                                            disp_epoch=15, #TODO change number of epochs
+                                            disp_epoch=10, #TODO change number of epochs
                                             ignore_cache=True,
                                             cf_no_train=20000,
                                             cf_no_val=3000) #TODO Change number of CF here
