@@ -145,7 +145,9 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
             #Discriminate real and fake
             validity_real = discriminator(x_gt_rsz)  # will throw referenced before assignment error
             validity_fake = discriminator(x_l.detach())
-
+            # adverserial gts, valid == generated from the blend gan
+            valid = torch.ones(x_gt_rsz.size(0),).to(device)  # generate labels of length batch_size
+            fake = torch.zeros(x_gt_rsz.size(0),).to(device) 
             # Losses
             losses_d = {}
             losses_d['real'] = L_adv(validity_real, valid)
@@ -166,6 +168,10 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
     save_samples = save_sample_single if cfg.LOG.SAVE_SINGLES else save_sample_sheet
 
     pbar = tqdm(range(*ep_range))
+
+    # Training loop
+    blend_gan.train()
+    discriminator.train()
 
     for i, ep in enumerate(pbar):
 
@@ -279,6 +285,7 @@ def main(cfg):
         weights = {k.replace('module.', ''): v for k, v in weights.items()}
         cgn.load_state_dict(weights)
     if cfg.DISC_WEIGHTS_PATH:
+        print("Loading the discriminator's weights")
         weights = torch.load(cfg.DISC_WEIGHTS_PATH, map_location=torch.device(device))
         discriminator.load_state_dict(weights)
 
@@ -339,7 +346,7 @@ if __name__ == "__main__":
 
     # ToDo: add more
     args = parser.parse_args()
-
+ 
     cfg = get_cfg_gp_gan_defaults()
     cfg = merge_args_and_cfg(args, cfg)
 
