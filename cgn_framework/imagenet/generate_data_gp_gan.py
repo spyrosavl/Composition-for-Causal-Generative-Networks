@@ -231,7 +231,6 @@ def main(args):
 
                 # convert to tensor
                 xh = torch.tensor(img_out).to(device)
-
                 xh = xh.transpose(2,1).transpose(1,0)
 
                 # #Use Poisson blending
