@@ -6,8 +6,8 @@ cfg = __C
 
 # General
 __C.MODEL_NAME = 'tmp'
-__C.BlGAN_WEIGHTS_PATH = "/home/lcur1339/dl2-cgn/cgn_framework/imagenet/weights/blend_net_weights"
-__C.CGN_WEIGHTS_PATH = "/home/lcur1339/dl2-cgn/cgn_framework/imagenet/weights/cgn.pth"
+__C.BlGAN_WEIGHTS_PATH = "imagenet/weights/blend_net_weights.pth"
+__C.CGN_WEIGHTS_PATH = "imagenet/weights/cgn.pth"
 __C.DISC_WEIGHTS_PATH = ''
 
 # Logging
