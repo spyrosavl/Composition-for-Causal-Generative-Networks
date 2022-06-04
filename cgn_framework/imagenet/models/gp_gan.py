@@ -431,7 +431,7 @@ class BlendNet(nn.Module):
         x7 = F.relu(self.dconv4(x6))
         x8 = F.relu(self.dconv3(x7))
         x9 = F.relu(self.dconv2(x8))
-        x10 = F.tanh(self.dconv1(x9))
+        x10 = F.relu(self.dconv1(x9))
         # print("OUTPUT SIZE", x.size())
         return x10
 

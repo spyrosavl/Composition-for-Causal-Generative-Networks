@@ -32,7 +32,7 @@ def generate_counterfactual_dataset(
     """Generates CF dataset for ImageNet (size of IN-mini)"""
     seed_everything(seed)
 
-    script_path = join(REPO_PATH, "cgn_framework/imagenet/generate_data_deterministic_refinement.py") #TODO Change this one
+    script_path = join(REPO_PATH, "cgn_framework/imagenet/generate_data_deterministic_refinement_retrain.py") #TODO Change this one
 
     # generate train and val dataset
     for mode in modes:        
