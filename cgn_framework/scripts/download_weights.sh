@@ -8,3 +8,6 @@ mv cgn.pth imagenet/weights
 
 wget "https://s3.amazonaws.com/models.huggingface.co/biggan/biggan-deep-256-pytorch_model.bin"
 mv biggan-deep-256-pytorch_model.bin imagenet/weights/biggan256.pth
+
+gdown "https://drive.google.com/u/0/uc?id=1Ji-Q5xI_yerepHT-J6Nq42FUQbCcfWvJ&export=download"
+mv network_weights imagenet/weights/blend_net_weights.pth

@@ -16,4 +16,4 @@ module load Anaconda3/2021.05
 # Activate your environment
 source activate cgn-gpu
 
-python imagenet/train_cgn_poisson.py --model_name cgn_poisson --weights_path imagenet/weights/cgn.pth --batch_sz 1 --batch_acc 1024 --episodes 10
+python imagenet/train_cgn_poisson.py --model_name cgn_poisson --weights_path imagenet/weights/cgn.pth --batch_sz 1 --batch_acc 1024 --episodes 30

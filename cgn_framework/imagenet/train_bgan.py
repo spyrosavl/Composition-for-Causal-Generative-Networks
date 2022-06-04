@@ -39,16 +39,24 @@ def save_sample_sheet(blend_gan, cgn, sample_path, ep_str):
             # inp = (u_fixed.to(dev), y_vec.to(dev), cgn.truncation)
         x_gt, mask, premask, foreground, background, bg_mask = cgn()
         x_gen = mask * foreground + (1 - mask) * background
-        
+        #x_gen is in [-1,1]
+        x_gt = (x_gt + 1) / 2
+        x_gen = (x_gen + 1) / 2
+        assert x_gen.min() >= 0 and x_gen.max() <= 1
+        assert x_gt.min() >= 0 and x_gt.max() <= 1
+
         # resize to 64x64
         x_resz = torchvision.transforms.functional.resize(x_gen, size=(64,64))
-       
-        save_image(x_resz, "/home/lcur1339/dl2-cgn/cgn_framework/imagenet/experiments/blendnetinput.png")
-        x_l = blend_gan(x_resz)
-        save_image(x_l, "/home/lcur1339/dl2-cgn/cgn_framework/imagenet/experiments/blendnetoutput.png")
+
+        # save_image(x_resz, "imagenet/experiments/blendnetinput.png")
+        x_l = blend_gan(x_resz) # x_l is in [0,1]
+        x_l = x_l / x_l.max()
+        assert x_l.min() >= 0 and x_l.max() <= 1
+
+        # save_image(x_l, "imagenet/experiments/blendnetoutput.png")
         # resize to 256x256
         x_l_uprsz = torchvision.transforms.functional.resize(x_l, size=(256,256))
-        save_image(x_l_uprsz, "/home/lcur1339/dl2-cgn/cgn_framework/imagenet/experiments/blendnetoutputrszd.png")
+        # save_image(x_l_uprsz, "imagenet/experiments/blendnetoutputrszd.png")
         
 
         # build class grid
@@ -126,41 +134,41 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
     loss_per_epoch = {'blend_gan': [],
                     'discriminator': []}  # recording losses to plot later
 
-    """ Give headstart to the discriminator """
-    if disc_head_start is not None: 
-        print("Training the discriminator before fine tuning...")
-        blend_gan.eval()
-        discriminator.train()
-        pbar = tqdm(range(0, disc_head_start))
-        for i, ep in enumerate(pbar):
-            x_gt, mask, premask, foreground, background, background_mask = cgn()
-            # generate x (copy + paste composition)
-            x = mask * foreground + (1 - mask) * background
+    # """ Give headstart to the discriminator """
+    # if disc_head_start is not None: 
+    #     print("Training the discriminator before fine tuning...")
+    #     blend_gan.eval()
+    #     discriminator.train()
+    #     pbar = tqdm(range(0, disc_head_start))
+    #     for i, ep in enumerate(pbar):
+    #         x_gt, mask, premask, foreground, background, background_mask = cgn()
+    #         # generate x (copy + paste composition)
+    #         x = mask * foreground + (1 - mask) * background
 
-            # downsize the image
-            x_resz = torchvision.transforms.functional.resize(x, size=(64,64))
-            x_gt_rsz = torchvision.transforms.functional.resize(x_gt, size=(64,64))
-            # get the low resolution, well-blended, semantic & colour accurate output x_l
-            x_l = blend_gan(x_resz)
+    #         # downsize the image
+    #         x_resz = torchvision.transforms.functional.resize(x, size=(64,64))
+    #         x_gt_rsz = torchvision.transforms.functional.resize(x_gt, size=(64,64))
+    #         # get the low resolution, well-blended, semantic & colour accurate output x_l
+    #         x_l = blend_gan(x_resz)
 
-            opts.zero_grad(['discriminator'])
+    #         opts.zero_grad(['discriminator'])
 
-            #Discriminate real and fake
-            validity_real = discriminator(x_gt_rsz)  # will throw referenced before assignment error
-            validity_fake = discriminator(x_l.detach())
-            # adverserial gts, valid == generated from the blend gan
-            valid = torch.ones(x_gt_rsz.size(0),).to(device)  # generate labels of length batch_size
-            fake = torch.zeros(x_gt_rsz.size(0),).to(device) 
-            # Losses
-            losses_d = {}
-            losses_d['real'] = L_adv(validity_real, valid)
-            losses_d['fake'] = L_adv(validity_fake, fake)
-            loss_d = sum(losses_d.values()) / 2
-            # print(f"DISC LOSSES in epi: {ep}", losses_d)
-            loss_per_epoch['discriminator'].append(losses_d)
-            # Backprop and step
-            loss_d.backward()
-            opts.step(['discriminator'], False)
+    #         #Discriminate real and fake
+    #         validity_real = discriminator(x_gt_rsz)  # will throw referenced before assignment error
+    #         validity_fake = discriminator(x_l.detach())
+    #         # adverserial gts, valid == generated from the blend gan
+    #         valid = torch.ones(x_gt_rsz.size(0),).to(device)  # generate labels of length batch_size
+    #         fake = torch.zeros(x_gt_rsz.size(0),).to(device) 
+    #         # Losses
+    #         losses_d = {}
+    #         losses_d['real'] = L_adv(validity_real, valid)
+    #         losses_d['fake'] = L_adv(validity_fake, fake)
+    #         loss_d = sum(losses_d.values()) / 2
+    #         # print(f"DISC LOSSES in epi: {ep}", losses_d)
+    #         loss_per_epoch['discriminator'].append(losses_d)
+    #         # Backprop and step
+    #         loss_d.backward()
+    #         opts.step(['discriminator'], False)
 
 
     # Training loop
@@ -185,15 +193,24 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
         x_gt, mask, premask, foreground, background, background_mask = cgn()
 
         # generate x (copy + paste composition)
-        x = mask * foreground + (1 - mask) * background
+        x = mask * foreground + (1 - mask) * background # x is in [-1, 1]
+        x = (x+1) / 2 # x is in [0, 1]
+        assert x.min() >= 0 and x.max() <= 1, "x is not in [0, 1]"
+
+        x_gt = (x_gt+1) / 2 # x is in [0, 1]
+        assert x_gt.min() >= 0 and x_gt.max() <= 1, "x_gt is not in [0, 1]"
 
         # downsize the image
         x_resz = torchvision.transforms.functional.resize(x, size=(64,64))
         x_gt_rsz = torchvision.transforms.functional.resize(x_gt, size=(64,64))
+
         # get the low resolution, well-blended, semantic & colour accurate output x_l
         x_l = blend_gan(x_resz)
-        
-        # adverserial gts, valid == generated from the blend gan
+        print("BGAN outputs (min,max)", x_l.min(), x_l.max())
+        x_l = x_l / x_l.max()
+        assert x_l.min() >= 0 and x_l.max() <= 1, "x_l is not in [0, 1]"
+
+        # adverserial gts, fake == generated from the blend gan
         valid = torch.ones(x_gt_rsz.size(0),).to(device)  # generate labels of length batch_size
         fake = torch.zeros(x_gt_rsz.size(0),).to(device) 
 
@@ -202,6 +219,12 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
         losses_g = {} 
         losses_g['L_l2'] = L_l2(x_l, x_gt_rsz)
         losses_g['L_adv'] = L_adv(validity, valid) * cfg.LAMBDA.ADV
+
+        regulirizer = 0.00001
+        l2_reg = 0
+        for param in blend_gan.parameters():
+            l2_reg += torch.norm(param)
+        losses_g['l2_reg'] = l2_reg * regulirizer  # regularize by the sum of the parameter norms
         # print(f"LOSSES in epi: {ep}", losses_g)
 
         loss_g = sum(losses_g.values())
@@ -321,7 +344,7 @@ def merge_args_and_cfg(args, cfg):
     # cfg.LOG.SAMPLED_FIXED_NOISE = args.sampled_fixed_noise
     # cfg.LOG.SAVE_SINGLES = args.save_singles
     # cfg.LOG.SAVE_ITER = args.save_iter
-    # cfg.LOG.LOSSES = args.log_losses
+    cfg.LOG.LOSSES = True
 
     cfg.TRAIN.EPOCHS = args.epochs
     cfg.TRAIN.BATCH_SZ = args.batch_sz
