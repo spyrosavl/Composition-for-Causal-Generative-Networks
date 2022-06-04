@@ -134,7 +134,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
     loss_per_epoch = {'blend_gan': [],
                     'discriminator': []}  # recording losses to plot later
 
-    """ Give headstart to the discriminator """
+    # """ Give headstart to the discriminator """
     # if disc_head_start is not None: 
     #     print("Training the discriminator before fine tuning...")
     #     blend_gan.eval()
@@ -206,7 +206,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
 
         # get the low resolution, well-blended, semantic & colour accurate output x_l
         x_l = blend_gan(x_resz)
-        print(x_l.min(), x_l.max())
+        print("BGAN outputs (min,max)", x_l.min(), x_l.max())
         x_l = x_l / x_l.max()
         assert x_l.min() >= 0 and x_l.max() <= 1, "x_l is not in [0, 1]"
 
@@ -224,7 +224,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
         l2_reg = 0
         for param in blend_gan.parameters():
             l2_reg += torch.norm(param)
-        losses_g['l2_reg'] = l2_reg * regulirizer
+        losses_g['l2_reg'] = l2_reg * regulirizer  # regularize by the sum of the parameter norms
         # print(f"LOSSES in epi: {ep}", losses_g)
 
         loss_g = sum(losses_g.values())
