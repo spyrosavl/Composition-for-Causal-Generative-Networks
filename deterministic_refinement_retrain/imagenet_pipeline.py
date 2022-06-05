@@ -49,7 +49,7 @@ def generate_counterfactual_dataset(
         else:
             print("Generating {} dataset...".format(mode))
             print("WARNING: This will take about 3 hours for train set and 20 mins for validation set.")
-            arguments = "--mode random --weights_path imagenet/experiments/cgn_2022_05_29_11_42_cgn_poisson/weights/ep_0008000.pth"\
+            arguments = "--mode random --weights_path imagenet/experiments/cgn_2022_06_03_18_01_cgn_poisson/weights/ep_0015000.pth"\
                 f" --n_data {n_samples} --run_name {prefix}_{mode} --truncation {trunc} --batch_sz 1"\
                 f" --ignore_time_in_filename"
             cmd = f"python {script_path} {arguments}"
