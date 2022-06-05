@@ -131,11 +131,16 @@ class BlendGAN(nn.Module):
         self.decoder = Decoder(z_size=z_size)
 
     def forward(self, input):
+        print("Input min,max", input.min(), input.max())
         x = self.encoder.model(input)
+        print("PreComp min, max", x.min(), x.max())
         x = self.encoder.output(x)
-        x = self.bn(x)
+        #x = self.bn(x)
+        print("Z min,max", x.min(), x.max())
         x = self.decoder.model(x)
+        print("PreOUT min, max", x.min(), x.max())
         x = self.decoder.output(x)
+        print("OUT min,max", x.min(), x.max())
         return x
 
 
@@ -421,17 +426,23 @@ class BlendNet(nn.Module):
     def forward(self, x):
         # print("INPUT SIZE", x.size())
         # print("type: ", x.dtype)
+        print("Input min,max", x.min(), x.max())
         x1 = F.relu(self.conv1(x))
         x2 = F.relu(self.conv2(x1))
         x3 = F.relu(self.conv3(x2)) 
+        print("x3-out min,max", x3.min(), x3.max())
         x4 = F.relu(self.conv4(x3))
         x5 = F.relu(self.conv5(x4))
         # print("LATENT VECTOR SIZE", x5.size())
+        print("Z min,max", x5.min(), x5.max())
         x6 = F.relu(self.dconv5(x5))
         x7 = F.relu(self.dconv4(x6))
         x8 = F.relu(self.dconv3(x7))
+        print("x8-out min,max", x8.min(), x8.max())
         x9 = F.relu(self.dconv2(x8))
         x10 = F.relu(self.dconv1(x9))
+        print("Out min,max", x10.min(), x10.max())
+        print()
         # print("OUTPUT SIZE", x.size())
         return x10
 

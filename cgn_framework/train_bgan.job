@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
 #SBATCH --time=18:00:00  #TODO
-#SBATCH --mem=32000M
+#SBATCH --mem=32000M  
 #SBATCH --output=slurm_output_%A.out
 
 module purge
@@ -20,5 +20,4 @@ source activate cgn-gpu
 
 # Run your code
 ## runs all experiments to reproduce Table 3 and 4 in the paper
-python imagenet/train_bgan.py --epochs=1000 --batch_acc=1
-
+python imagenet/train_bgan.py --episodes=5000 --batch_acc=1 --batch_sz=16

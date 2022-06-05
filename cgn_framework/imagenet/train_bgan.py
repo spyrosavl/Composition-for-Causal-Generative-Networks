@@ -26,6 +26,8 @@ from imagenet.models.gp_gan import Encoder, Discriminator
 from shared.losses import *
 from utils import Optimizers
 
+SCALE_IOS = False
+torch.cuda.empty_cache()
 
 def save_sample_sheet(blend_gan, cgn, sample_path, ep_str):
     
@@ -40,18 +42,23 @@ def save_sample_sheet(blend_gan, cgn, sample_path, ep_str):
         x_gt, mask, premask, foreground, background, bg_mask = cgn()
         x_gen = mask * foreground + (1 - mask) * background
         #x_gen is in [-1,1]
-        x_gt = (x_gt + 1) / 2
-        x_gen = (x_gen + 1) / 2
-        assert x_gen.min() >= 0 and x_gen.max() <= 1
-        assert x_gt.min() >= 0 and x_gt.max() <= 1
+
+        if SCALE_IOS:
+            x_gt = (x_gt + 1) / 2
+            x_gen = (x_gen + 1) / 2
+            assert x_gen.min() >= 0 and x_gen.max() <= 1
+            assert x_gt.min() >= 0 and x_gt.max() <= 1
 
         # resize to 64x64
         x_resz = torchvision.transforms.functional.resize(x_gen, size=(64,64))
 
         # save_image(x_resz, "imagenet/experiments/blendnetinput.png")
+        
         x_l = blend_gan(x_resz) # x_l is in [0,1]
-        x_l = x_l / x_l.max()
-        assert x_l.min() >= 0 and x_l.max() <= 1
+        
+        if SCALE_IOS:
+            x_l = x_l / x_l.max()
+            assert x_l.min() >= 0 and x_l.max() <= 1
 
         # save_image(x_l, "imagenet/experiments/blendnetoutput.png")
         # resize to 256x256
@@ -107,7 +114,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
     if device is None: device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     # total number of episodes, accounted for batch accumulation
-    episodes = cfg.TRAIN.EPOCHS
+    episodes = cfg.TRAIN.EPISODES
     episodes *= cfg.TRAIN.BATCH_ACC
 
     # directories for experiments and storing results
@@ -134,7 +141,7 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
     loss_per_epoch = {'blend_gan': [],
                     'discriminator': []}  # recording losses to plot later
 
-    """ Give headstart to the discriminator """
+    # """ Give headstart to the discriminator """
     # if disc_head_start is not None: 
     #     print("Training the discriminator before fine tuning...")
     #     blend_gan.eval()
@@ -194,11 +201,12 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
 
         # generate x (copy + paste composition)
         x = mask * foreground + (1 - mask) * background # x is in [-1, 1]
-        x = (x+1) / 2 # x is in [0, 1]
-        assert x.min() >= 0 and x.max() <= 1, "x is not in [0, 1]"
+        if SCALE_IOS: # change normalisation depending on the implementation
+            x = (x+1) / 2 # x is in [0, 1]
+            assert x.min() >= 0 and x.max() <= 1, "x is not in [0, 1]"
 
-        x_gt = (x_gt+1) / 2 # x is in [0, 1]
-        assert x_gt.min() >= 0 and x_gt.max() <= 1, "x_gt is not in [0, 1]"
+            x_gt = (x_gt+1) / 2 # x is in [0, 1]
+            assert x_gt.min() >= 0 and x_gt.max() <= 1, "x_gt is not in [0, 1]"
 
         # downsize the image
         x_resz = torchvision.transforms.functional.resize(x, size=(64,64))
@@ -206,9 +214,11 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
 
         # get the low resolution, well-blended, semantic & colour accurate output x_l
         x_l = blend_gan(x_resz)
-        print(x_l.min(), x_l.max())
-        x_l = x_l / x_l.max()
-        assert x_l.min() >= 0 and x_l.max() <= 1, "x_l is not in [0, 1]"
+        print("BGAN outputs (min,max)", x_l.min(), x_l.max())
+
+        if SCALE_IOS:
+            x_l = x_l / x_l.max()
+            assert x_l.min() >= 0 and x_l.max() <= 1, "x_l is not in [0, 1]"
 
         # adverserial gts, fake == generated from the blend gan
         valid = torch.ones(x_gt_rsz.size(0),).to(device)  # generate labels of length batch_size
@@ -222,9 +232,14 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
 
         regulirizer = 0.00001
         l2_reg = 0
+        num_p = 0
         for param in blend_gan.parameters():
+            num_p += param.numel()
             l2_reg += torch.norm(param)
-        losses_g['l2_reg'] = l2_reg * regulirizer
+        
+        print("Average weight size", l2_reg/num_p)
+
+        losses_g['l2_reg'] = l2_reg * regulirizer  # regularize by the sum of the parameter norms
         # print(f"LOSSES in epi: {ep}", losses_g)
 
         loss_g = sum(losses_g.values())
@@ -251,6 +266,17 @@ def fit(cfg, blend_gan, discriminator, cgn, opts, losses, device=None, disc_head
         # Backprop and step
         loss_d.backward()
         opts.step(['discriminator'], False)
+        
+        # ToDo: for debugging
+        layers = []
+        grads_per_layer = []
+        for n, param in blend_gan.named_parameters():
+            if(param.requires_grad) and ("bias" not in n) and param is not None:
+                layers.append(n)
+                if param.grad is not None:
+                    grads_per_layer.append(param.grad.abs().mean())
+        
+        print("gradients", grads_per_layer)
 
         # record average loss per batch for the discriminator
         loss_per_epoch['discriminator'].append(loss_d.detach().item())
@@ -283,7 +309,7 @@ def main(cfg):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # init model
-    blend_gan = BlendNet()
+    blend_gan = BlendGAN() #BlendNet() ##BlendGAN() 
     # init discriminator
     discriminator = Discriminator()
 
@@ -321,7 +347,7 @@ def main(cfg):
 
     # optimizers
     opts = Optimizers()
-    opts.set('blend_gan', blend_gan, lr=cfg.LR.BGAN)
+    opts.set('blend_gan', blend_gan, lr=cfg.LR.BGAN) #ToDo
     opts.set('discriminator', discriminator, lr=cfg.LR.DISC)
     
     #losses
@@ -346,7 +372,7 @@ def merge_args_and_cfg(args, cfg):
     # cfg.LOG.SAVE_ITER = args.save_iter
     cfg.LOG.LOSSES = True
 
-    cfg.TRAIN.EPOCHS = args.epochs
+    cfg.TRAIN.EPISODES = args.episodes
     cfg.TRAIN.BATCH_SZ = args.batch_sz
     cfg.TRAIN.BATCH_ACC = args.batch_acc
 
@@ -362,11 +388,11 @@ if __name__ == "__main__":
                         help='Weights and samples will be saved under experiments/model_name')
     parser.add_argument('--weights_path', default='imagenet/weights/cgn.pth',
                         help='provide path to continue training')
-    parser.add_argument('--epochs', type=int, default=5000,
+    parser.add_argument('--episodes', type=int, default=1000,
                         help="We don't do dataloading, hence, one episode = one gradient update.")
-    parser.add_argument('--batch_sz', type=int, default=1,
+    parser.add_argument('--batch_sz', type=int, default=2,
                         help='Batch size, use in conjunciton with batch_acc')
-    parser.add_argument('--batch_acc', type=int, default=2,
+    parser.add_argument('--batch_acc', type=int, default=1,
                         help='pseudo_batch_size = batch_acc*batch size')
 
     # ToDo: add more
