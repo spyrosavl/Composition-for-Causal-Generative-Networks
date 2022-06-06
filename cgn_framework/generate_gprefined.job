@@ -20,4 +20,4 @@ source activate cgn-gpu
 
 # Run your code
 ## runs all experiments to reproduce Table 3 and 4 in the paper
-python imagenet/generate_data_gp_gan.py --mode='best_classes' --n_data=20 --run_name="for_paper2" --truncation=0.5
+python imagenet/generate_data_gp_gan.py --mode='best_classes' --n_data=20 --run_name="for_paper2_prop_best" --truncation=0.5
