@@ -47,3 +47,4 @@ If you want to run the experiments on your local machine, please run the bash co
 
 `sbatch run_imagenet.job` 
 
+`sbatch run_inception_score.job` 
