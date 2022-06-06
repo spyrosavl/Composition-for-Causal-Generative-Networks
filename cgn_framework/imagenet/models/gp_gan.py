@@ -27,13 +27,16 @@ class Encoder(nn.Module):
             nn.Conv2d(in_channels=3, out_channels=ngf, kernel_size=(4,4), stride=2, padding=1, bias=False), # outputs 112x112
             nn.LeakyReLU(negative_slope=0.2),
             nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(4,4), stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(128),
+            #nn.BatchNorm2d(128),
+            nn.LayerNorm((1, 128,16,16)),
             nn.LeakyReLU(negative_slope=0.2),
             nn.Conv2d(in_channels=128, out_channels=256, kernel_size=(4,4), stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(256),
+            #nn.BatchNorm2d(256),
+            nn.LayerNorm((1, 256, 8, 8)),
             nn.LeakyReLU(negative_slope=0.2),
             nn.Conv2d(in_channels=256, out_channels=512, kernel_size=(4,4), stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(512),
+            # nn.BatchNorm2d(512),
+            nn.LayerNorm((1,512, 4, 4)),
             nn.LeakyReLU(negative_slope=0.2),  
         )
 
@@ -56,7 +59,7 @@ class Encoder(nn.Module):
         return x
 
 class Discriminator(nn.Module):
-    
+    """ The discriminator, based off the encoder architecture """
     def __init__(self, ngf=64, z_size=4000, img_size = (3, 256, 256)):
         super(Discriminator, self).__init__()
 
@@ -64,13 +67,16 @@ class Discriminator(nn.Module):
             nn.Conv2d(in_channels=3, out_channels=ngf, kernel_size=(4,4), stride=2, padding=1, bias=False), # outputs 112x112
             nn.LeakyReLU(negative_slope=0.2),
             nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(4,4), stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(128),
+            #nn.BatchNorm2d(128),
+            nn.LayerNorm((1, 128, 16, 16)),
             nn.LeakyReLU(negative_slope=0.2),
             nn.Conv2d(in_channels=128, out_channels=256, kernel_size=(4,4), stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(256),
+            # nn.BatchNorm2d(256),
+            nn.LayerNorm((1, 256, 8, 8)),
             nn.LeakyReLU(negative_slope=0.2),
             nn.Conv2d(in_channels=256, out_channels=512, kernel_size=(4,4), stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(512),
+            # nn.BatchNorm2d(512),
+            nn.LayerNorm((1, 512, 4, 4)),
             nn.LeakyReLU(negative_slope=0.2),  
         )
         self.clf = nn.Sequential(
@@ -94,18 +100,22 @@ class Decoder(nn.Module):
 
         self.model = nn.Sequential(
             nn.ConvTranspose2d(in_channels=z_size, out_channels=ndf, kernel_size=(4,4), stride=1, padding=0, bias=False),
-            nn.LeakyReLU(negative_slope=0.2),
+            nn.ReLU(),
             nn.ConvTranspose2d(in_channels=512, out_channels=256, kernel_size=(4,4), stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(256),
+            #nn.BatchNorm2d(256),
+            nn.LayerNorm((1, 256, 8, 8)),
             nn.ReLU(),
             nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=(4,4), stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(128),
+            # nn.BatchNorm2d(128),
+            nn.LayerNorm((1, 128, 16, 16)),
             nn.ReLU(),  
             nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=(4,4), stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(64),
+            # nn.BatchNorm2d(64),
+            nn.LayerNorm((1, 64, 32, 32)),
             nn.ReLU(),
             nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=(4,4), stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(32),
+            # nn.BatchNorm2d(32),
+            nn.LayerNorm((1, 32, 64, 64)),
             nn.ReLU(),
         )
 
@@ -127,39 +137,28 @@ class BlendGAN(nn.Module):
     def __init__(self, z_size=4000): #encoder, decoder):
         super(BlendGAN, self).__init__()
         self.encoder = Encoder(z_size=z_size)
-        self.bn = nn.BatchNorm2d(z_size)
+        # self.bn = nn.BatchNorm2d(z_size)
+        nn.LayerNorm((z_size,32,32)),
         self.decoder = Decoder(z_size=z_size)
 
     def forward(self, input):
-        print("Input min,max", input.min(), input.max())
+        #print("Input min,max", input.min(), input.max())
         x = self.encoder.model(input)
-        print("PreComp min, max", x.min(), x.max())
+        #print("PreComp min, max", x.min(), x.max())
         x = self.encoder.output(x)
         #x = self.bn(x)
-        print("Z min,max", x.min(), x.max())
+        #print("Z min,max", x.min(), x.max())
         x = self.decoder.model(x)
-        print("PreOUT min, max", x.min(), x.max())
+        #print("PreOUT min, max", x.min(), x.max())
         x = self.decoder.output(x)
-        print("OUT min,max", x.min(), x.max())
+        #print("OUT min,max", x.min(), x.max())
         return x
 
 
-""" Functions for the G-P bledning """
+""" Functions for the G-P image blending pipelie """
 
 device =  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# def get_img_gradients(img):
-#     """ Get the gradients of an image 
-#     expects tensor image of shape [CxHxW]
-#     outputs image of gradients of shape (Hxw) in nparray format
-#     """
-#     # Get x-gradient in "sx"
-#     sx = ndimage.sobel(img,axis=1,mode='constant')
-#     # Get y-gradient in "sy"
-#     sy = ndimage.sobel(img,axis=2,mode='constant')
-#     # Get square root of sum of squares
-#     sobel=np.hypot(sx,sy)
-#     return np.mean(sobel, 0)
 
 def get_img_gradients(img):
     """ Get the gradients of an image 
@@ -323,16 +322,16 @@ def run_gp_editting(foreground, background, mask, gan_im, color_weight, sigma, g
     fg_features = gradient_features(foreground, gan_im, gradient_kernel)
     # ToDo: check my assumption here - namely, that I create a feature map on all 5 dimensions
     feature = fg_features * mask[:,:,:, np.newaxis] + bg_features * (1 - mask[:,:,:, np.newaxis])
-    print(feature.shape) #64x64x3x5
+    #print(feature.shape) #64x64x3x5
     size, dtype = feature.shape[:2], feature.dtype  
-    print(size) #64x64
-    print(dtype) #float32
+    #print(size) #64x64
+    #print(dtype) #float32
     param_l = laplacian_param(size, dtype)
     param_g = gaussian_param(size, dtype, sigma)
     gan_im = gaussian_poisson_editting(feature, param_l, param_g, color_weight=color_weight)
     gan_im = np.clip(gan_im, 0, 1)
 
-    print("GAN IM AFTER GP EDIT", gan_im.shape)
+    #print("GAN IM AFTER GP EDIT", gan_im.shape)
     return gan_im
 
 def laplacian_pyramid(img, max_level, image_size, smooth_sigma):
@@ -352,13 +351,14 @@ def laplacian_pyramid(img, max_level, image_size, smooth_sigma):
 
     return img_pyramid, diff_pyramid
 
-def gp_gan(foreground, background, mask, xl, color_weight=1, image_size=256, sigma=0.5, gradient_kernel='normal', smooth_sigma=1):
+def gp_gan(foreground, background, mask, xl, color_weight=1, image_size=256, sigma=0.5, gradient_kernel='normal', smooth_sigma=1, blend_net_configed=False):
     """  The full G-P GAN pipiline (accepts tensors, outputs numpy arrays) """
 
-    # convert to numpy arrays and appropriate dim configuration
+    # convert to numpy arrays and appropriate dim configuration (apart from the blend_net output)
     fg = foreground.detach().squeeze(0).cpu().numpy().transpose(1,2,0)  # get into (H,W,C) format
     bg = background.detach().squeeze(0).cpu().numpy().transpose(1,2,0) 
-    xl = xl.detach().squeeze(0).cpu().numpy().transpose(1,2,0)
+    if not blend_net_configed:
+        xl = xl.detach().squeeze(0).cpu().numpy().transpose(1,2,0)
     msk = mask.detach().squeeze().cpu().numpy().transpose(1,0)
 
     W_orig, H_orig, C = fg.shape
@@ -385,70 +385,4 @@ def gp_gan(foreground, background, mask, xl, color_weight=1, image_size=256, sig
     gan_im = np.clip(gan_im*255, 0, 255).astype(np.uint8)
     
     return gan_im
-
-
 # example python implementation: https://github.com/msinghal34/Image-Blending-using-GP-GANs/blob/master/src/PyramidBlending.py
-class BlendNet(nn.Module):
-
-    def __init__(self):
-        super(BlendNet, self).__init__()
-        # torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True)
-        # Encoder
-        self.batch_norm = nn.BatchNorm2d(3)
-        self.conv1 = nn.Conv2d(3, 64, 4, 2, 1)
-        self.conv2 = nn.Conv2d(64, 128, 4, 2, 1)
-        self.conv3 = nn.Conv2d(128, 256, 4, 2, 1)
-        self.conv4 = nn.Conv2d(256, 512, 4, 2, 1)
-        self.conv5 = nn.Conv2d(512, 4000, 4)
-        
-        # torch.nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride=1, padding=0, output_padding=0, groups=1, bias=True, dilation=1)
-        # Staring Decoder
-        self.dconv5 = nn.ConvTranspose2d(4000, 512, 4)
-        self.dconv4 = nn.ConvTranspose2d(512, 256, 4, 2, 1)
-        self.dconv3 = nn.ConvTranspose2d(256, 128, 4, 2, 1)
-        self.dconv2 = nn.ConvTranspose2d(128, 64, 4, 2, 1)
-        self.dconv1 = nn.ConvTranspose2d(64, 3, 4, 2, 1)
-        
-        torch.nn.init.xavier_normal_(self.conv1.weight)
-        torch.nn.init.xavier_normal_(self.conv2.weight)
-        torch.nn.init.xavier_normal_(self.conv3.weight)
-        torch.nn.init.xavier_normal_(self.conv4.weight)
-        torch.nn.init.xavier_normal_(self.conv5.weight)
-        
-        torch.nn.init.xavier_normal_(self.dconv1.weight)
-        torch.nn.init.xavier_normal_(self.dconv2.weight)
-        torch.nn.init.xavier_normal_(self.dconv3.weight)
-        torch.nn.init.xavier_normal_(self.dconv4.weight)
-        torch.nn.init.xavier_normal_(self.dconv5.weight)
-        
-        
-
-    def forward(self, x):
-        # print("INPUT SIZE", x.size())
-        # print("type: ", x.dtype)
-        print("Input min,max", x.min(), x.max())
-        x1 = F.relu(self.conv1(x))
-        x2 = F.relu(self.conv2(x1))
-        x3 = F.relu(self.conv3(x2)) 
-        print("x3-out min,max", x3.min(), x3.max())
-        x4 = F.relu(self.conv4(x3))
-        x5 = F.relu(self.conv5(x4))
-        # print("LATENT VECTOR SIZE", x5.size())
-        print("Z min,max", x5.min(), x5.max())
-        x6 = F.relu(self.dconv5(x5))
-        x7 = F.relu(self.dconv4(x6))
-        x8 = F.relu(self.dconv3(x7))
-        print("x8-out min,max", x8.min(), x8.max())
-        x9 = F.relu(self.dconv2(x8))
-        x10 = F.relu(self.dconv1(x9))
-        print("Out min,max", x10.min(), x10.max())
-        print()
-        # print("OUTPUT SIZE", x.size())
-        return x10
-
-    def num_flat_features(self, x):
-        size = x.size()[1:]  # all dimensions except the batch dimension
-        num_features = 1
-        for s in size:
-            num_features *= s
-        return num_features
