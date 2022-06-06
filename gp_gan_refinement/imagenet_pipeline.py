@@ -32,14 +32,14 @@ def generate_counterfactual_dataset(
     """Generates CF dataset for ImageNet (size of IN-mini)"""
     seed_everything(seed)
 
-    script_path = join(REPO_PATH, "cgn_framework/imagenet/generate_data_gpgan.py") # Change this one
+    script_path = join(REPO_PATH, "cgn_framework/imagenet/generate_data_gp_gan.py") # Change this one
 
     # generate train and val dataset
     for mode in modes:        
         run_name = f"{prefix}_{mode}_trunc_{trunc}"
         n_samples = eval(f"n_{mode}")
 
-        data_root = join(REPO_PATH, "cgn_framework/imagenet/data/cgn/gpGAN_refinement/", run_name) # Change this one
+        data_root = join(REPO_PATH, "cgn_framework/imagenet/data/cgnxgp/GP_refinement/", run_name) # Change this one
         ims = glob(join(data_root, "ims/*.jpg"))
         if isdir(data_root) and len(ims) >= n_samples:
             print("")
@@ -49,7 +49,7 @@ def generate_counterfactual_dataset(
         else:
             print("Generating {} dataset...".format(mode))
             print("WARNING: This will take about 3 hours for train set and 20 mins for validation set.")
-            arguments = "--mode random --weights_path imagenet/weights/cgn.pth"\
+            arguments = "--mode random --cgn_weights_path imagenet/weights/cgn.pth"\
                 f" --n_data {n_samples} --run_name {prefix}_{mode} --truncation {trunc} --batch_sz 1"\
                 f" --ignore_time_in_filename"
             cmd = f"python {script_path} {arguments}"
@@ -62,11 +62,13 @@ def train_classifier(args: dict = dict(lr=0.001), prefix="in-mini", seed=0, disp
     args = dotdict(args)
     seed_everything(seed)
 
-    experiment_name = "gpGAN_refinement" #TODO: Change this one
+    experiment_name = "cgnxgp/GP_refinement" #TODO: Change this one
     run_name = f"{prefix}-classifier-{experiment_name}" 
     expt_dir = join(REPO_PATH, "cgn_framework/imagenet/experiments", f"classifier__{run_name}")
     epoch_metrics_path = join(expt_dir, f"epochwise_metrics/epoch_{disp_epoch-1}.pt")
-    cf_data_path = f"imagenet/data/cgn/{experiment_name}/{prefix}" 
+    cf_data_path = f"imagenet/data/{experiment_name}/{prefix}"  # TODO: change here
+
+    print(f"training from {cf_data_path}")
 
     if not exists(epoch_metrics_path) or ignore_cache:
         
@@ -108,7 +110,7 @@ def run_eval_on_ood_benchmarks(seed=0, ignore_cache=False, show=False):
                 weight_path = "cgn_framework/imagenet/weights/resnet50_from_scratch_model_best.pth.tar"
             
             if classifier == "cgn-ensemble":
-                weight_path = "cgn_framework/imagenet/weights/classifier_on_in-mini_model_best.pth"
+                weight_path = "cgn_framework/imagenet/experiments/classifier__in-mini-classifier-cgnxgp/GP_refinement/model_best.pth"
 
             args = dict(
                 seed=seed,
@@ -151,7 +153,7 @@ def run_experiments(seed=0, generate_cf_data=False, disp_epoch=45, ignore_cache=
 
     # # step 2: train classifier
     print("\n::::: Training classifier :::::\n")
-    metrics = train_classifier(prefix="in-mini", seed=seed, disp_epoch=disp_epoch, ignore_cache=ignore_cache)
+    metrics = train_classifier(prefix="in-mini", seed=seed, disp_epoch=disp_epoch, ignore_cache=ignore_cache) #ToDo: generate data?
 
     # step 3: evaluate on OOD benchmarks
     print("\n::::: Evaluating OOD :::::\n")
@@ -166,10 +168,10 @@ if __name__ == "__main__":
     print("Running imagenet pipelein for the GP-GAN framework")
     metrics_clf, df_ood = run_experiments(  seed=0, 
                                             generate_cf_data=True, 
-                                            disp_epoch=10, #TODO change number of epochs #15
+                                            disp_epoch=15, #TODO change number of epochs
                                             ignore_cache=True,
                                             cf_no_train=20000,
-                                            cf_no_val=3000) #TODO Change number of CF here #20000
+                                            cf_no_val=3000) #TODO Change number of CF here
 
     # construct Table 3 of the paper
     heads = ["shape", "texture", "bg"]

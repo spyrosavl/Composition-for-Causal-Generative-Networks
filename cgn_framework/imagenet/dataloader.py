@@ -159,7 +159,7 @@ class ImagenetCounterfactual(Dataset):
           "RUN_NAME_0000000_textures.jpg"
     '''
 
-    def __init__(self, ims_path, train=True, n_data=None, mode='x_gen'):
+    def __init__(self, ims_path, train=True, n_data=None, mode='x_gp_refined'):
 
         super(ImagenetCounterfactual, self).__init__()
         print(f"Loading counterfactual data from {ims_path}")

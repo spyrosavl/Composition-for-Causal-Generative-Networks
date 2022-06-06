@@ -19,6 +19,7 @@ figures/*.pdf
 experiments/weights/*.pth*
 experiments/
 media/
+cgnXcGAN
 
 # Gradio outputs
 */flagged/

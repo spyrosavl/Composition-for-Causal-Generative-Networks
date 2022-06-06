@@ -78,6 +78,7 @@ def train_classifier(args: dict = dict(lr=0.001), prefix="in-mini", seed=0, disp
             f" --data 'imagenet/data/{prefix}' --cf_data '{cf_data_path}'"\
             f" --name {run_name} --seed {seed} --ignore_time_in_filename --epochs {disp_epoch}"
         cmd = f"python {script_path} {arguments}"
+        print("ABOUT TO CALL CALL", cmd)
         call(cmd, shell=True, cwd='../cgn_framework')
     else:
         print("::::: Classifier already trained, skipping :::::")

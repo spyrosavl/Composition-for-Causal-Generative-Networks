@@ -1,6 +1,6 @@
 """ Running the G-P GAN pipiline """
 
-from imagenet.models import BlendGan, BlendNet
+# from imagenet.models import BlendGan, BlendNet
 '''
 Generate a dataset with the CGN.
 The labels are stored in a csv
@@ -25,8 +25,19 @@ repackage.up()
 from imagenet.models.cgn import CGN
 from imagenet.models.gp_gan import gp_gan
 
-def save_image(im, path):
-    torchvision.utils.save_image(im.detach().cpu(), path, normalize=True)
+import cv2
+from chainer import cuda, serializers, Variable
+import chainer
+#import cupy
+import numpy as np
+
+from imagenet.models.blending_gan import EncoderDecoder
+
+def save_image(im, path): 
+    if type(im) == torch.Tensor:
+        torchvision.utils.save_image(im.detach().cpu(), path, normalize=True)  # ToDo: save from numpy array
+    elif type(im) == np.ndarray:
+        cv2.imwrite(path, im)
 
 def interp(x0, x1, num_midpoints):
     '''
@@ -170,25 +181,31 @@ def main(args):
         truncation=args.truncation,
         pretrained=False,
     )
-    blend_gan = BlendNet()
+    blend_gan = EncoderDecoder(nef=64, ngf=64, nc=3, nBottleneck=4000, image_size=64)
     
     cgn = cgn.eval().to(device)
-    blend_gan = blend_gan.eval().to(device)
+    #blend_gan = blend_gan.eval().to(device) # ToDo: set appropriate for chainer
 
-    weights = torch.load(args.weights_path, map_location='cpu')
+    weights = torch.load(args.cgn_weights_path, map_location=device)
     weights = {k.replace('module.', ''): v for k, v in weights.items()}
     cgn.load_state_dict(weights)
     cgn.eval().to(device)
 
-    blend_gan.load_state_dict(torch.load(args.bgan_weights_path, map_location='cpu'))
-    blend_gan = blend_gan.eval().to(device)
 
+    # blend_gan.load_state_dict(torch.load(args.bgan_weights_path, map_location='cpu'))
+    # blend_gan = blend_gan.eval().to(device)
+    # chainer weight loading
+    weights_path = args.blendgan_weights_path #'./imagenet/weights/blending_gan.npz'
+    serializers.load_npz(weights_path, blend_gan)
+    if device != torch.device('cpu'):
+        cuda.get_device(0).use()  # Make a specified GPU current
+        blend_gan.to_gpu()  # Copy the model to the GPU
 
 
     # path setup
     time_str = datetime.now().strftime("%Y_%m_%d_%H_") if not args.ignore_time_in_filename else ""
     trunc_str = f"{args.run_name}_trunc_{args.truncation}"
-    data_path = join('imagenet', 'data', 'cgn', 'deterministic_refinement', time_str + trunc_str) #TODO change this
+    data_path = join('imagenet', 'data', 'cgnxgp', 'GP_refinement', time_str + trunc_str) #TODO change this
     ims_path = join(data_path, 'ims')
     pathlib.Path(ims_path).mkdir(parents=True, exist_ok=True)
     print(f"Saving data to {data_path}")
@@ -219,19 +236,30 @@ def main(args):
 
                 # generate blending gan colour mask xl
                 x_resz = torchvision.transforms.functional.resize(x_gen, size=(64,64))
-                xl = blend_gan(x_resz)
+                x_set = x_resz.detach().squeeze(0).cpu().numpy().transpose(1,2,0)
+                x_set = Variable(chainer.dataset.concat_examples([x_set.transpose(2,0,1).astype(np.float32)], 0)) 
+
+                gan_im = blend_gan(x_set)
+
+                xl = np.clip(np.transpose((np.squeeze(cuda.to_cpu(gan_im.data)) + 1) / 2, (1, 2, 0)), 0, 1).astype('float')
 
                 # rung gp-gan pipeline
-                img_out = gp_gan(
+                xh = gp_gan(
                     foreground,
                     background,
                     mask,
-                    xl
+                    xl,
+                    color_weight = 1e-6,
+                    image_size=64,
+                    blend_net_configed=True
                 )
 
+                mean_mask = str(mask.mean().item())
+                mean_masks.append(mean_mask)
+
                 # convert to tensor
-                xh = torch.tensor(img_out).to(device)
-                xh = xh.transpose(2,1).transpose(1,0)
+                # xh = torch.tensor(img_out).to(device)
+                # xh = xh.transpose(2,1).transpose(1,0)  # ToDo:
 
                 # #Use Poisson blending
                 # input_img_source = foreground.squeeze(0).transpose(0,1).transpose(1,2).detach().cpu()
@@ -249,17 +277,15 @@ def main(args):
                 #     src_mask=input_img_mask
                 # )
                 # x_gen = img_out.transpose(1,2).transpose(0,1).unsqueeze(0)
-
-                # mean_mask = str(mask.mean().item())
-                # mean_masks.append(mean_mask)
-
                 # save image
                 # to save other outputs, simply add a line in the same format, e.g.:
                 # save_image(premask, join(ims_path, im_name + '_premask.jpg'))
-                #save_image(background, join(ims_path, im_name + '_x_background.jpg'))
-                #save_image(foreground, join(ims_path, im_name + '_x_foreground.jpg'))
-                #save_image(mask, join(ims_path, im_name + '_x_mask.jpg'))
-                save_image(x_gen, join(ims_path, im_name + '_x_gp_refined.jpg'))
+                # save_image(background, join(ims_path, im_name + '_x_background.jpg'))
+                # save_image(foreground, join(ims_path, im_name + '_x_foreground.jpg'))
+                # save_image(mask, join(ims_path, im_name + '_x_mask.jpg'))
+                save_image(x_gen, join(ims_path, im_name + '_x_.jpg'))
+                save_image(xh, join(ims_path, im_name + '_x_gp_refined.jpg'))
+
 
             # save labels
             df = pd.DataFrame(columns=[im_name] + ys)
@@ -278,13 +304,13 @@ if __name__ == '__main__':
                         help='How many datapoints to sample')
     parser.add_argument('--run_name', type=str, required=True,
                         help='Name the dataset')
-    parser.add_argument('--cgn_weights_path', type=str, required=True,
-                        help='Which weights to load for the CGN', default='imagenet/weights/cgn.pth')
-    parser.add_argument('--blendgan_weights_path', type=str, required=True,
-                        help='Which weights to load for the BlendGAN', default='imagenet/weights/blend_net_weights.pth')
+    parser.add_argument('--cgn_weights_path', type=str, required=False,
+                        help='Which weights to load for the CGN', default='/home/lcur1339/dl2-cgn/cgn_framework/imagenet/weights/cgn.pth')
+    parser.add_argument('--blendgan_weights_path', type=str, required=False,
+                        help='Which weights to load for the BlendGAN', default='/home/lcur1339/dl2-cgn/cgn_framework/imagenet/weights/blending_gan.npz')
     parser.add_argument('--batch_sz', type=int, default=1,
                         help='For generating a dataset, keep this at 1')
-    parser.add_argument('--truncation', type=float, default=1.0,
+    parser.add_argument('--truncation', type=float, default=0.5,
                         help='Truncation value for the sampling the noise')
     parser.add_argument('--classes', nargs='+', default=[0, 0, 0],
                         help='Classes to sample from, use in conjunction with ' +

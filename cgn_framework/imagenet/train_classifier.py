@@ -565,6 +565,8 @@ def accuracy(output, target, topk=(1,)):
 
 
 if __name__ == '__main__':
+
+    print("WILL TRAIN THE CLASSIFIER???!!!")
     parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
     parser.add_argument('--data', default='data/ImageNet',
                         help='path to dataset')
@@ -627,3 +629,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args)
     main(args)
+
+    
