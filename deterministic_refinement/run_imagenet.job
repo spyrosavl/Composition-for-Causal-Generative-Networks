@@ -20,4 +20,7 @@ source activate cgn-gpu
 # Run your code
 ## runs all experiments to reproduce Table 3 and 4 in the paper
 python imagenet_pipeline.py
-
+ 
+# # Inception score
+echo 'Inception score pipeline'
+python inception_score.py --data_dir imagenet/data/cgn/deterministic_refinement/inception_trunc_0.5 --run_name inception --weights_path ../cgn_framework/imagenet/weights/cgn.pth
