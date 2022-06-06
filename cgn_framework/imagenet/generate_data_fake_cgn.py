@@ -169,9 +169,9 @@ def main(args):
     )
     cgn = cgn.eval().to(device)
 
-    weights = torch.load(args.weights_path, map_location='cpu')
-    weights = {k.replace('module.', ''): v for k, v in weights.items()}
-    cgn.load_state_dict(weights)
+    # weights = torch.load(args.weights_path, map_location='cpu')
+    # weights = {k.replace('module.', ''): v for k, v in weights.items()}
+    # cgn.load_state_dict(weights)
     cgn.eval().to(device)
 
     # path setup
