@@ -16,6 +16,8 @@ Please download the datasets and the weights first:
 `python setup/download_weights.py`
 
 Then run the following commands to reproduce the experiments on slurm cluster:
+If you want to run the experiments on your local machine, please run the bash code in each of the .job files.
+
 
 ## Fake-CGN baseline
 
@@ -26,6 +28,16 @@ Then run the following commands to reproduce the experiments on slurm cluster:
 ## Poisson blending (Pretrained)
 
 `cd deterministic_refinement`
+
+`sbatch run_imagenet.job`
+
+## Poisson blending (Finetuned)
+
+`cd cgn_framework`
+
+`sbatch run_train_cgn_poisson.job`
+
+`cd deterministic_refinement_retrain`
 
 `sbatch run_imagenet.job`
 
